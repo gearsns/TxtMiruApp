@@ -1,0 +1,68 @@
+body.dark {
+    background: rgb(71, 71, 71);
+
+    main {
+        background: #303030;
+        color: rgb(216, 209, 189);
+    }
+
+    #contents a {
+        color: rgb(123, 147, 255);
+    }
+
+    ::-webkit-scrollbar {
+        background: black;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #131313;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: rgb(56, 56, 56);
+    }
+
+    .Narou .chapter_title {
+        color: #757575;
+    }
+
+    .Kakuyomu .widget-toc-episode-datePublished {
+        display: block;
+        text-align: right;
+        color: rgb(216, 209, 189);
+        text-decoration: none;
+    }
+
+    .menu-trigger {
+        position: relative;
+        width: 3rem;
+        height: 3rem;
+        background: rgb(56, 56, 56);
+        border: none;
+        appearance: none;
+        cursor: pointer;
+    }
+
+    .menu-trigger:hover {
+        background: rgb(56, 56, 56);
+    }
+
+    .TxtMiru .chapter_title,
+    .Narou .subtitles li.chapter,
+    .Narou .p-eplist__chapter-title,
+    .Kakuyomu .subtitles li.chapter {
+        color: #d1cfcf;
+        background-color: #555045be;
+    }
+
+    .Narou .subtitles li,
+    .Narou .p-eplist__sublist,
+    .Kakuyomu .subtitles li {
+        border-right: 1px solid #555045be
+    }
+
+    a.txtmiru_pager,
+    a.c-pager__item {
+        color: rgb(45, 56, 100) !important;
+    }
+}

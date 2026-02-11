@@ -1,0 +1,103 @@
+button {
+    display: inline-block;
+    color: #fff;
+    background: rgb(173, 150, 75);
+    border: none;
+    line-height: 1.8rem;
+    padding: 0.5rem;
+    margin-top: 4px;
+    margin-bottom: 4px;
+    margin-left: 4px;
+    margin-right: 0px;
+    height: 2.8rem;
+    border-radius: 0;
+    position: relative;
+    overflow: hidden;
+    z-index: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-font-smoothing: antialiased;
+    font-smooth: antialiased;
+    font-weight: 400;
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    font-family: "Noto Serif JP", serif;
+    font-display: swap;
+}
+
+button::before {
+    display: block;
+    position: absolute;
+    content: '';
+    border-radius: 50%;
+    transform-origin: center top;
+    transform: rotate(-40deg);
+    opacity: 0.2;
+    right: -12em;
+    bottom: -30em;
+    width: 30em;
+    height: 30em;
+    z-index: -1;
+}
+
+button:disabled {
+    color: lightgray;
+    background: gray !important;
+}
+
+button:hover {
+    background: rgb(119, 104, 53);
+}
+
+button.seigaiha_yellow {
+    background: rgb(173, 150, 75);
+}
+
+button.seigaiha_yellow:hover {
+    background: rgb(119, 104, 53);
+}
+
+button.seigaiha_blue {
+    background: rgb(38, 126, 167);
+}
+
+button.seigaiha_blue:hover {
+    background: rgb(29, 96, 128);
+}
+
+button.update {
+    color: #fff;
+    background-color: #28a745;
+}
+
+button.delete {
+    color: #fff;
+    background-color: #dc3545;
+}
+
+button.goto {
+    color: #fff;
+    background: rgb(173, 150, 75);
+}
+
+button.goto2 {
+    color: #fff;
+    background-color: #17a2b8;
+}
+
+button.update:hover {
+    background-color: #1c7932;
+}
+
+button.delete:hover {
+    background-color: #a12632;
+}
+
+button.goto:hover {
+    background: rgb(119, 104, 53);
+}
+
+button.goto2:hover {
+    background-color: #106977;
+}

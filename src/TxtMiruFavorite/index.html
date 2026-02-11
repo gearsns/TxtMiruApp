@@ -1,0 +1,44 @@
+<div id="box-inner" class="box-inner">
+    <button id="regist">追加</button>
+    <button id="delete" class="delete">削除</button>
+    <button id="update" class="update">最新の情報に更新</button>
+    <button id="first" class="goto">トップから</button>
+    <button id="continue" class="goto2">続きから</button>
+    <button id="close" class="seigaiha_blue">閉じる</button>
+    <div class="sticky_table">
+        <table id="novel_list">
+            <thead id="novel_list_head">
+                <tr>
+                    <th>
+                        <div name="list_no">#</div>
+                    </th>
+                    <th colspan="3">
+                        <div name="page">ページ</div>
+                    </th>
+                    <th>
+                        <div name="title">
+                            <div name="new" class="updated" style="display:inline">New</div>タイトル
+                        </div>
+                        <div name="author">著者</div>
+                    </th>
+                    <th>
+                        <div name="site">掲載</div>
+                    </th>
+                </tr>
+            </thead>
+            <tbody id="novel_list_body"></tbody>
+        </table>
+    </div>
+</div>
+<div id="url-modal" class="input-url hide">
+    <div class="input-box-outer">
+        <div class="input-box-inner" id="input-box-inner">
+            <dl>
+                <dt>URL または 小説家になろうのNコードを指定してください。</dt>
+                <dd><input class="url" type="text" id="input-url"></dd>
+            </dl>
+            <button id="save-url">登録</button>
+            <button id="close-url" class="seigaiha_blue">閉じる</button>
+        </div>
+    </div>
+</div>

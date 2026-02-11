@@ -1,0 +1,220 @@
+<style>
+    :host {
+        display: none;
+    }
+
+    :host(.show) {
+        display: block;
+        position: fixed;
+        display: block;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(45, 45, 45, 0.5);
+        z-index: 3;
+        top: 0;
+        -webkit-font-smoothing: antialiased;
+        -moz-font-smoothing: antialiased;
+        font-smooth: antialiased;
+        font-weight: 400;
+        -webkit-text-size-adjust: 100%;
+        -moz-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+        font-family: "Noto Serif JP", serif;
+        font-display: swap;
+    }
+
+    .box-inner {
+        padding: 20px;
+        border-radius: 8px;
+        background-color: rgba(255, 255, 255, 0.8);
+        margin: 20px;
+        height: calc(100svh - 80px);
+        width: calc(100svw - 80px);
+        overflow: scroll;
+        font-size: 1.8rem;
+    }
+
+    .radio-area {
+        margin-bottom: 1em;
+    }
+
+    dt {
+        font-weight: bold;
+        margin-top: 10px;
+    }
+
+    dd {
+        margin-left: 0;
+    }
+
+    input[type="text"] {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .box-inner input {
+        font-size: 1em;
+    }
+
+    .box-inner dl {
+        margin-left: 2rem;
+    }
+
+    #server-url,
+    #websocket-server-url {
+        width: 100rem;
+        max-width: calc(100% - 40px);
+    }
+
+    .radio-area {
+        display: inline-block;
+        color: #fff;
+        background: rgb(38, 126, 167);
+        position: relative;
+        overflow: hidden;
+        z-index: 0;
+        clear: both;
+    }
+
+    .radio-area::before {
+        display: block;
+        position: absolute;
+        content: '';
+        border-radius: 50%;
+        transform-origin: center top;
+        transform: rotate(-40deg);
+        background: white url(./assets/seigaiha.png);
+        opacity: 0.2;
+        right: -12em;
+        bottom: -30em;
+        width: 30em;
+        height: 30em;
+        z-index: -1;
+    }
+
+    .radio-area input[type="radio"] {
+        display: none;
+    }
+
+    .radio-area label {
+        font-size: 0.8em;
+        display: block;
+        cursor: pointer;
+        margin: 0;
+        float: left;
+        padding: 0.25em 1em;
+        color: #ccc;
+    }
+
+    .radio-area label:last-of-type {
+        border-radius: 0 3px 3px 0;
+    }
+
+    .radio-area label:has(input[type="radio"]:checked) {
+        display: block;
+        position: relative;
+        color: #fff;
+        z-index: 0;
+    }
+
+    .radio-area label:has(input[type="radio"]:checked)::before {
+        display: block;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        content: "";
+        background: #000;
+        opacity: 0.4;
+        top: 0;
+        left: 0;
+        z-index: -1;
+    }
+
+    #font-name {
+        width: 20rem;
+    }
+
+    #tap-scroll-next-per {
+        width: 10rem;
+    }
+
+    #delay-set-scroll-pos-state {
+        width: 10rem;
+    }
+
+    #user-id,
+    #font-feature-settings {
+        width: 15rem;
+    }
+</style>
+<div id="container">
+    <div id="box-inner" class="box-inner">
+        <button id="regist">保存</button>
+        <button id="reset" class="update">デフォルト設定に戻す</button>
+        <button id="close" class="seigaiha_blue">閉じる</button>
+        <dl>
+            <dt>テーマ</dt>
+            <dd class="radio-area">
+                <label><input type="radio" name="theme-type" id="theme-type-light" checked>ライト(標準)</label>
+                <label><input type="radio" name="theme-type" id="theme-type-dark">ダーク</label>
+            </dd>
+            <dt>フォントサイズ</dt>
+            <dd class="radio-area">
+                <label><input type="radio" name="font-size" id="font-size-large-p">大(+)</label>
+                <label><input type="radio" name="font-size" id="font-size-large">大</label>
+                <label><input type="radio" name="font-size" id="font-size-middle" checked>中</label>
+                <label><input type="radio" name="font-size" id="font-size-small">小</label>
+            </dd>
+            <dt>フォント名</dt>
+            <dd><input type="text" id="font-name" value=""></dd>
+            <dt>メニューの位置</dt>
+            <dd class="radio-area">
+                <label><input type="radio" name="menu-position" id="menu-position-top" checked>上</label>
+                <label><input type="radio" name="menu-position" id="menu-position-bottom">下</label>
+            </dd>
+            <dt>次話、前話ボタン</dt>
+            <dd class="radio-area">
+                <label><input type="radio" name="show-episode" id="show-episode-true" checked>表示</label>
+                <label><input type="radio" name="show-episode" id="show-episode-false">非表示</label>
+            </dd>
+            <dt>目次ボタン</dt>
+            <dd class="radio-area">
+                <label><input type="radio" name="show-index" id="show-index-true" checked>表示</label>
+                <label><input type="radio" name="show-index" id="show-index-false">非表示</label>
+            </dd>
+            <dt>画面端タップでスクロール(0-100を指定)</dt>
+            <dd><input type="text" id="tap-scroll-next-per" value="" list="tap-scroll-next-per-list" placeholder="例：20">%
+                <datalist id="tap-scroll-next-per-list">
+                    <option value="20">横向きの時、推奨</option>
+                    <option value="50">横向きの時、推奨</option>
+                </datalist>
+            </dd>
+            <dt>WebサーバーのURL</dt>
+            <dd><input type="text" id="server-url" value=""></dd>
+            <dt>WebSocketサーバーのURL</dt>
+            <dd><input type="text" id="websocket-server-url" value=""></dd>
+            <dt>ユーザーID</dt>
+            <dd><input type="text" id="user-id" value=""></dd>
+            <dt>あなたは18歳以上ですか？</dt>
+            <dd class="radio-area">
+                <label><input type="radio" name="over18" id="over18-no" checked>NO</label>
+                <label><input type="radio" name="over18" id="over18-yes">YES</label>
+            </dd>
+            <dt>履歴保存待機時間</dt>
+            <dd><input type="text" id="delay-set-scroll-pos-state" value="">(ミリ秒)</dd>
+            <dt>スクロールアニメーション</dt>
+            <dd class="radio-area">
+                <label><input type="radio" name="p-s-effect-anim" id="p-s-effect-anim-no">NO</label>
+                <label><input type="radio" name="p-s-effect-anim" id="p-s-effect-anim-yes" checked>YES</label>
+            </dd>
+            <dt>プリフェッチ処理</dt>
+            <dd class="radio-area">
+                <label><input type="radio" name="prefetch" id="prefetch-no">NO</label>
+                <label><input type="radio" name="prefetch" id="prefetch-yes" checked>YES</label>
+            </dd>
+            <dt>font-feature-settings</dt>
+            <dd><input type="text" id="font-feature-settings" value=""></dd>
+        </dl>
+    </div>
+</div>

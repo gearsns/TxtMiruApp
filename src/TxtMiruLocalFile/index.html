@@ -1,0 +1,64 @@
+<style>
+  :host {
+    display: none;
+  }
+
+  :host(.show) {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    text-align: center;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 3;
+  }
+
+  .url {
+    width: 70%;
+    max-width: 40em;
+  }
+
+  dt,
+  dd {
+    margin: auto;
+  }
+
+  .inner {
+    width: 100%;
+    padding: 10px;
+    font-size: 1.8rem;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.8);
+  }
+
+  .outer {
+    width: 90%;
+    height: 90%;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    text-align: center;
+  }
+</style>
+<div class="outer" id="outer">
+  <div class="inner" id="inner">
+    <dl>
+      <dt>テキストファイルまたはHTMLファイルを選択してください。</dt>
+      <dd>
+        <hr>
+        <input type="file" id="local-file">
+        <div id="folder-area">
+          <label><input type="checkbox" id="local-file-folder">フォルダ単位で読み込み</label>
+        </div>
+      </dd>
+    </dl>
+    <label><input type="radio" id="aozora" name="type" value="aozora" checked>青空文庫形式</label>
+    <label><input type="radio" id="narou" name="type" value="narou">小説家になろう形式</label>
+    <hr>
+    <div id="message" style="color: red;"></div>
+    <button id="close">閉じる</button>
+  </div>
+</div>
