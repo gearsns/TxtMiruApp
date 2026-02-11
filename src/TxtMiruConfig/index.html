@@ -184,16 +184,16 @@
                 <label><input type="radio" name="show-index" id="show-index-false">非表示</label>
             </dd>
             <dt>画面端タップでスクロール(0-100を指定)</dt>
-            <dd><input type="text" id="tap-scroll-next-per" value="" list="tap-scroll-next-per-list" placeholder="例：20">%
+            <dd><input type="number" id="tap-scroll-next-per" value="" list="tap-scroll-next-per-list" placeholder="例：20">%
                 <datalist id="tap-scroll-next-per-list">
-                    <option value="20">横向きの時、推奨</option>
-                    <option value="50">横向きの時、推奨</option>
+                    <option value="20" label="横向きの時、推奨"></option>
+                    <option value="50" label="横向きの時、推奨"></option>
                 </datalist>
             </dd>
             <dt>WebサーバーのURL</dt>
-            <dd><input type="text" id="server-url" value=""></dd>
+            <dd><input type="url" id="server-url" value=""></dd>
             <dt>WebSocketサーバーのURL</dt>
-            <dd><input type="text" id="websocket-server-url" value=""></dd>
+            <dd><input type="url" id="websocket-server-url" value=""></dd>
             <dt>ユーザーID</dt>
             <dd><input type="text" id="user-id" value=""></dd>
             <dt>あなたは18歳以上ですか？</dt>
@@ -202,7 +202,7 @@
                 <label><input type="radio" name="over18" id="over18-yes">YES</label>
             </dd>
             <dt>履歴保存待機時間</dt>
-            <dd><input type="text" id="delay-set-scroll-pos-state" value="">(ミリ秒)</dd>
+            <dd><input type="number" id="delay-set-scroll-pos-state" value="">(ミリ秒)</dd>
             <dt>スクロールアニメーション</dt>
             <dd class="radio-area">
                 <label><input type="radio" name="p-s-effect-anim" id="p-s-effect-anim-no">NO</label>

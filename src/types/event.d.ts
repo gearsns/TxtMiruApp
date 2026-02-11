@@ -13,9 +13,4 @@ declare global {
   interface HTMLElementEventMap {
     'command': CommandEvent;
   }
-
-  // addEventListener で 'loadnovel' を認識できるように拡張
-  interface HTMLElementEventMap {
-    'loadnovel': LoadNovelEvent;
-  }
 }

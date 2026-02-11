@@ -2,8 +2,6 @@ import { TxtMiruSitePlugin, appendSlash, checkForcePager, checkFetchAbortError, 
 import { TxtMiruLib } from '../../TxtMiruLib';
 import { db } from '../../store'
 
-// txtMiru未使用
-
 export class Akatsuki extends TxtMiruSitePlugin {
     Match = (url: string): boolean => url.match(/https:\/\/www\.akatsuki\-novels\.com\//) !== null
     GetDocument = (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem | null> | null =>
@@ -64,9 +62,7 @@ export class Akatsuki extends TxtMiruSitePlugin {
         if (Array.isArray(url)) {
             return await this.GetArrayInfo(txtMiru, url, callback)
         } else if (this.Match(url)) {
-            if (callback) {
-                callback([url])
-            }
+            callback?.([url])
             let index_url = ""
             let r
             url = appendSlash(url)

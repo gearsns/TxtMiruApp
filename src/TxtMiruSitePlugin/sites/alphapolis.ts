@@ -2,8 +2,6 @@ import { TxtMiruSitePlugin, appendSlash, checkForcePager, checkFetchAbortError, 
 import { TxtMiruLib } from '../../TxtMiruLib';
 import { db } from '../../store'
 
-// txtMiru未使用
-
 const makeItem = (url: string, text: string) => {
     const doc = TxtMiruLib.HTML2Document(text)
     removeNodes(doc.querySelectorAll("#gnbid, #breadcrumbs, #navbar, #header, #footer, .novel-freespace, .novel-action, .bookmark, .ScrollUpDown, .ranking-banner, .change-font-size, .alphapolis_title"))
@@ -67,9 +65,7 @@ export class Alphapolis extends TxtMiruSitePlugin {
         if (Array.isArray(url)) {
             return await this.GetArrayInfo(txtMiru, url, callback)
         } else if (this.Match(url)) {
-            if (callback) {
-                callback([url])
-            }
+            callback?.([url])
             url = appendSlash(url)
             const r = url.match(/(https:\/\/www\.alphapolis\.co\.jp\/novel\/[0-9]+\/[0-9]+\/)/)
             if (!r) {

@@ -83,9 +83,7 @@ export class NovelupPlus extends TxtMiruSitePlugin {
         if (Array.isArray(url)) {
             return await this.GetArrayInfo(txtMiru, url, callback)
         } else if (this.Match(url)) {
-            if (callback) {
-                callback([url])
-            }
+            callback?.([url])
             url = appendSlash(url)
             const m_index_url = url.match(/(https:\/\/novelup\.plus\/story\/.*?)\//)
             if (!m_index_url) {

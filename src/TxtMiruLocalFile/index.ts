@@ -1,5 +1,4 @@
 import html from "./index.html?raw"
-import { LoadNovelEvent } from '../events/LoadNovelEvent';
 import { sharedStyles } from '../style'
 
 interface ExtendedFile extends File {
@@ -15,6 +14,8 @@ export class TxtMiruLocalFile extends HTMLElement {
     private localFileElement!: HTMLInputElement;
     private messageElement!: HTMLDivElement;
     private narouRadio!: HTMLInputElement;
+    private closeCallback: (() => void) | undefined;
+    private savedCallback: ((url: string, files: TxtMiruItem[]) => void) | undefined;
 
     constructor() {
         super();
@@ -56,6 +57,11 @@ export class TxtMiruLocalFile extends HTMLElement {
         });
     }
 
+    public setCallback(closeCallback: (() => void) | undefined, savedCallback: ((url: string, files: TxtMiruItem[]) => void) | undefined) {
+        this.closeCallback = closeCallback;
+        this.savedCallback = savedCallback;
+    }
+
     public show() {
         this.classList.add('show');
         this.localFileElement.focus();
@@ -66,7 +72,7 @@ export class TxtMiruLocalFile extends HTMLElement {
         this.classList.remove('show');
 
         // 呼び出し元への通知
-        this.dispatchEvent(new CustomEvent('closed'));
+        this.closeCallback?.();
     }
     private handleDrop = async (e: DragEvent): Promise<void> => {
         e.stopPropagation();
@@ -136,7 +142,7 @@ export class TxtMiruLocalFile extends HTMLElement {
             const target = url_list[0];
             target.cache.url = index_url;
             caches.push(target.cache)
-            this.dispatchEvent(new LoadNovelEvent({ url: index_url, files: caches }));
+            this.savedCallback?.(index_url, caches);
             this.hide();
         } else if (url_list.length > 1) {
             this.generateIndex(url_list, index_url);
@@ -195,7 +201,7 @@ export class TxtMiruLocalFile extends HTMLElement {
         }
         htmlArr.push("</div>");
         caches.push({ url: index_url, html: htmlArr.join(""), title });
-        this.dispatchEvent(new LoadNovelEvent({ url: index_url, files: caches }));
+        this.savedCallback?.(index_url, caches);
         this.hide();
     }
 }
@@ -211,15 +217,8 @@ export const openLocalFileLoader = (closedCallback: () => void, loadnovelCallbac
     if (!el) {
         el = document.createElement('txtmiru-local-file') as TxtMiruLocalFile;
         document.body.appendChild(el);
-
-        // 通知の受け取り
-        el.addEventListener('closed', closedCallback)
-        el.addEventListener('loadnovel', (e) => {
-            if (e.files) {
-                loadnovelCallback(e.url, e.files)
-            }
-        });
     }
+    el.setCallback(closedCallback, loadnovelCallback);
 
     el.show();
 };

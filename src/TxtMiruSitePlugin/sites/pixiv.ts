@@ -113,9 +113,7 @@ export class Pixiv extends TxtMiruSitePlugin {
         if (Array.isArray(url)) {
             return await this.GetArrayInfo(txtMiru, url, callback)
         } else if (this.Match(url)) {
-            if (callback) {
-                callback([url])
-            }
+            callback?.([url])
             const [novel_id, _] = _getNovelId(url)
             if (!novel_id) {
                 return null

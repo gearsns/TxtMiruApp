@@ -3,9 +3,9 @@ import { TxtMiruLoading } from '../TxtMiruLoading';
 import css from "./style.css?inline"
 import html from "./index.html?raw"
 import { db } from '../store'
-import { LoadNovelEvent } from '../events/LoadNovelEvent';
 import { TxtMiruMessageBox } from '../TxtMiruMessageBox';
 import { sharedStyles } from '../style'
+import { openInputURL } from '../TxtMiruInputURL';
 
 /** お気に入りアイテムの型定義 */
 interface FavoriteItem {
@@ -25,6 +25,8 @@ export class TxtMiruFavorite extends HTMLElement {
     private loader: TxtMiruLoading;
     private shadow: ShadowRoot;
     private fetchAbortController: AbortController | null = null
+    private closeCallback: (() => void) | undefined;
+    private savedCallback: ((url: string) => void) | undefined;
 
     constructor() {
         super();
@@ -52,6 +54,11 @@ export class TxtMiruFavorite extends HTMLElement {
         this.setEvent();
     }
 
+    public setCallback(closeCallback: (() => void) | undefined, savedCallback: ((url: string) => void) | undefined) {
+        this.closeCallback = closeCallback;
+        this.savedCallback = savedCallback;
+    }
+
     /** 公開API: 表示 */
     public show = async (): Promise<void> => {
         this.loader.begin();
@@ -67,7 +74,7 @@ export class TxtMiruFavorite extends HTMLElement {
     private hide = () => {
         this.shadow.getElementById("container")!.classList.add("hide");
         // 呼び出し元への通知
-        this.dispatchEvent(new CustomEvent('closed'));
+        this.closeCallback?.();
     }
     private dispList = (): void => {
         const list = this.favoriteList;
@@ -164,7 +171,7 @@ export class TxtMiruFavorite extends HTMLElement {
                     this.hide()
                     const url = tr.getAttribute(id);
                     if (url) {
-                        this.dispatchEvent(new LoadNovelEvent({ url: url }));
+                        this.savedCallback?.(url);
                     }
                     return
                 }
@@ -178,11 +185,7 @@ export class TxtMiruFavorite extends HTMLElement {
 
         // 追加
         getEl("regist")?.addEventListener("click", () => {
-            const modal = getEl("url-modal")!;
-            modal.classList.remove("hide");
-            const input = getEl("input-url") as HTMLInputElement;
-            input.value = new URL(window.location.href).searchParams.get('url') || "";
-            input.focus();
+            openInputURL(() => {}, (url: string) => this.addSite(url));
         });
         // 削除
         getEl("delete")?.addEventListener("click", () => {
@@ -295,20 +298,6 @@ export class TxtMiruFavorite extends HTMLElement {
             getEl("url-modal")!.classList.add("hide");
         });
 
-        // 保存
-        getEl("save-url")?.addEventListener("click", () => this.addSite());
-        getEl("input-url")?.addEventListener("keydown", (e) => {
-            if (e.code === "Enter") {
-                this.addSite()
-                e.preventDefault()
-                e.stopPropagation()
-            } else if (e.code === "Escape") {
-                getEl("url-modal")!.classList.add("hide");
-                e.preventDefault()
-                e.stopPropagation()
-            }
-        }, false);
-
         // リスト内クリック（選択）
         getEl("novel_list_body")?.addEventListener("click", (e) => {
             const tr = (e.target as HTMLElement).closest("tr");
@@ -322,7 +311,7 @@ export class TxtMiruFavorite extends HTMLElement {
                 this.hide();
                 const url = tr.getAttribute("cur_url") || tr.getAttribute("url");
                 if (url) {
-                    this.dispatchEvent(new LoadNovelEvent({ url: url }));
+                    this.savedCallback?.(url);
                 }
             }
         });
@@ -353,9 +342,7 @@ export class TxtMiruFavorite extends HTMLElement {
         });
     }
 
-    private async addSite(): Promise<void> {
-        const input = this.shadow.getElementById("input-url") as HTMLInputElement;
-        let url = input.value;
+    private async addSite(url: string): Promise<void> {
         if (!url) return;
 
         this.loader.begin();
@@ -387,7 +374,6 @@ export class TxtMiruFavorite extends HTMLElement {
 
         } finally {
             this.loader.end();
-            this.shadow.getElementById("url-modal")!.classList.add("hide");
         }
     }
 }
@@ -401,13 +387,8 @@ export const openFavorite = (closedCallback: () => void, loadnovelCallback: (url
     if (!el) {
         el = document.createElement('txtmiru-favorite') as TxtMiruFavorite;
         document.body.appendChild(el);
-
-        // 通知の受け取り
-        el.addEventListener('closed', closedCallback);
-        el.addEventListener('loadnovel', (e) => {
-            loadnovelCallback(e.url)
-        });
     }
+    el.setCallback(closedCallback, loadnovelCallback)
 
     el.show();
 };

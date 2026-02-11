@@ -2,8 +2,6 @@ import { TxtMiruSitePlugin, appendSlash, checkForcePager, checkFetchAbortError, 
 import { TxtMiruLib } from '../../TxtMiruLib';
 import { db } from '../../store'
 
-// txtMiru未使用
-
 interface SubTitile {
     subtitle: string
     href: string
@@ -162,9 +160,7 @@ export class Kakuyomu extends TxtMiruSitePlugin {
         if (Array.isArray(url)) {
             return await this.GetArrayInfo(txtMiru, url, callback)
         } else if (this.Match(url)) {
-            if (callback) {
-                callback([url])
-            }
+            callback?.([url])
             url = appendSlash(url)
             const m = url.match(/(https:\/\/kakuyomu\.jp\/works\/.*?)\//)
             if (!m) {
@@ -176,18 +172,10 @@ export class Kakuyomu extends TxtMiruSitePlugin {
                 charset: "UTF-8"
             })}`
             const doc = await getHtmlDocument(req_url)
-            let max_page = 1
-            let title = ""
-            let author = ""
-            try {
-                max_page = doc.getElementsByClassName("widget-toc-episode-titleLabel").length
-                title = doc.getElementById("workTitle")!.innerText
-                author = doc.getElementById("workAuthor-activityName")!.innerText
-            } catch (e) { }
             const toc = GetToc(index_url, doc)
-            author = toc.author || author
-            title = toc.title || title
-            max_page = toc.subtitles.length || max_page
+            const author = toc.author || doc.getElementById("workAuthor-activityName")?.innerText || ""
+            const title = toc.title || doc.getElementById("workTitle")?.innerText || ""
+            const max_page = toc.subtitles.length || doc.getElementsByClassName("widget-toc-episode-titleLabel")?.length || 1
             return {
                 url: removeSlash(url),
                 max_page: max_page,
@@ -201,7 +189,7 @@ export class Kakuyomu extends TxtMiruSitePlugin {
         if (this.Match(url)) {
             url = appendSlash(url)
             const m = url.match(/(https:\/\/kakuyomu\.jp\/works\/.*?)\/(episodes\/.*)\/$/)
-            if (m && m.length > 0) {
+            if (m && m?.length > 0) {
                 const page_url = m[2]
                 const index_url = m[1]
                 const req_url = `${db.setting["WebServerUrl"]}?${new URLSearchParams({

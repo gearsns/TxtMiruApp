@@ -37,6 +37,8 @@ const textTypes: Record<string, string> = {
 
 export class TxtMiruConfig extends HTMLElement {
     private root: ShadowRoot;
+    private closeCallback: (() => void) | undefined;
+    private savedCallback: (() => void) | undefined;
 
     constructor() {
         super();
@@ -48,6 +50,11 @@ export class TxtMiruConfig extends HTMLElement {
     private render() {
         this.root.innerHTML = html
         this.root.adoptedStyleSheets = [sharedStyles];
+    }
+
+    public setCallback(closeCallback: (() => void) | undefined, savedCallback: (() => void) | undefined) {
+        this.closeCallback = closeCallback;
+        this.savedCallback = savedCallback;
     }
 
     private getById<T extends HTMLElement>(id: string): T {
@@ -86,7 +93,7 @@ export class TxtMiruConfig extends HTMLElement {
     private hideConfig() {
         this.classList.remove('show');
         // 呼び出し元への通知
-        this.dispatchEvent(new CustomEvent('closed'));
+        this.closeCallback?.();
     }
 
     private setEvent() {
@@ -133,7 +140,7 @@ export class TxtMiruConfig extends HTMLElement {
             db.setSetting(
                 Object.entries(setting).map(([id, value]) => ({ id, value }))
             ).then(() => {
-                this.dispatchEvent(new CustomEvent('saved'));
+                this.savedCallback?.();
                 this.hideConfig();
             }).catch(() => { });
         });
@@ -154,13 +161,8 @@ export const openConfig = (closeCallback: () => void, savedCallback: () => void)
     if (!el) {
         el = document.createElement('txtmiru-config') as TxtMiruConfig;
         document.body.appendChild(el);
-
-        // 通知の受け取り
-        el.addEventListener('closed', closeCallback);
-        el.addEventListener('saved', () => {
-            savedCallback()
-        });
     }
+    el.setCallback(closeCallback, savedCallback);
 
     el.show();
 };

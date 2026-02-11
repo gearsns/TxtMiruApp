@@ -51,9 +51,7 @@ export class Aozora extends TxtMiruSitePlugin {
         if (Array.isArray(url)) {
             return await this.GetArrayInfo(txtMiru, url, callback)
         } else if (this.Match(url)) {
-            if (callback) {
-                callback([url])
-            }
+            callback?.([url])
             let target_url = url
             let r
             if (url.match(/\/cards\/[0-9]+\/files\/[0-9_]+.*\.html/)) {

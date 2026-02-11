@@ -1,10 +1,11 @@
 import html from "./index.html?raw"
-import { LoadNovelEvent } from '../events/LoadNovelEvent';
 import { sharedStyles } from '../style'
 
 export class TxtMiruInputURL extends HTMLElement {
     private isComposing: boolean = false;
     private root: ShadowRoot;
+    private closeCallback: (() => void) | undefined;
+    private savedCallback: ((url: string) => void) | undefined;
 
     constructor() {
         super();
@@ -15,6 +16,12 @@ export class TxtMiruInputURL extends HTMLElement {
         this.root.adoptedStyleSheets = [sharedStyles];
         this.setupEvents();
     }
+
+    public setCallback(closeCallback: (() => void) | undefined, savedCallback: ((url: string) => void) | undefined) {
+        this.closeCallback = closeCallback;
+        this.savedCallback = savedCallback;
+    }
+
     // Shadow DOM内の要素を型安全に取得するためのヘルパー
     private getEl<T extends HTMLElement>(id: string): T {
         return this.root.getElementById(id) as T;
@@ -32,7 +39,7 @@ export class TxtMiruInputURL extends HTMLElement {
     public hideUrl = (): void => {
         this.getEl('container').classList.add("hide");
         // 呼び出し元への通知
-        this.dispatchEvent(new CustomEvent('closed'));
+        this.closeCallback?.()
     }
 
     private jump = (): void => {
@@ -40,7 +47,7 @@ export class TxtMiruInputURL extends HTMLElement {
         if (url.match(/^n/)) {
             url = `https://ncode.syosetu.com/${url}`;
         }
-        this.dispatchEvent(new LoadNovelEvent({ url: url }));
+        this.savedCallback?.(url)
         this.hideUrl();
     }
 
@@ -81,13 +88,8 @@ export const openInputURL = (closedCallback: () => void, loadnovelCallback: (url
     if (!el) {
         el = document.createElement('txtmiru-input-url') as TxtMiruInputURL;
         document.body.appendChild(el);
-
-        // 通知の受け取り
-        el.addEventListener('closed', closedCallback)
-        el.addEventListener('loadnovel', (e) => {
-            loadnovelCallback(e.url)
-        });
     }
+    el.setCallback(closedCallback, loadnovelCallback)
 
     el.show();
 };

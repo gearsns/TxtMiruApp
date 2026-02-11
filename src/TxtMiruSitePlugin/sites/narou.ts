@@ -3,8 +3,6 @@ import { TxtMiruLib } from '../../TxtMiruLib';
 import { db } from '../../store'
 import fetchJsonp from 'fetch-jsonp'
 
-// txtMiru未使用
-
 const makeItem = (url: string, text: string): TxtMiruItem => {
     const doc = TxtMiruLib.HTML2Document(text);
     const item: TxtMiruItem = { className: "Narou", url: url, title: doc.title };
@@ -129,9 +127,7 @@ export class Narou extends TxtMiruSitePlugin {
             }
             return out_results
         } else if (this.Match(url)) {
-            if (callback) {
-                callback([url])
-            }
+            callback?.([url])
             const ncode = getNcode(url)
             for (const item of await getUpdateInfo(url)) {
                 if (item.ncode && ncode === item.ncode.toUpperCase()) {
