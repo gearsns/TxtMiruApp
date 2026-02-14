@@ -1,5 +1,5 @@
 export const narou2html = (text: string) => {
-    const isNarouRubyText = (str: string) => (str || "").match(/^[ぁ-んーァ-ヶ・　 ]*$/)
+    const isNarouRubyText = (str: string) => /^[ぁ-んーァ-ヶ・　 ]*$/.test(str || "")
     const totext = (html: string) => html.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     const ret = []
     for (const line of text.split(/\n/)) {
@@ -63,7 +63,7 @@ export const narou2html = (text: string) => {
                 if ((text.match(/[　 ]/g) || []).length >= 2) {
                     item_type = "text"
                     rubyStart2Text(ruby_start_index)
-                } else if (text.match(/[　 ].+/)) {
+                } else if (/[　 ].+/.test(text)) {
                     return splitRuby2(text, 0)
                 }
                 return [text, item_type]
@@ -74,7 +74,7 @@ export const narou2html = (text: string) => {
                 if ((text.match(/[　 ]/g) || []).length >= 2) {
                     item_type = "text"
                     rubyStart2Text(ruby_start_index)
-                } else if (text.match(/[　 ].+/)) {
+                } else if (/[　 ].+/.test(text)) {
                     // 々 及び 〇(ゼロ) は漢字として認識させない
                     const pattern = '(.*?)((?:[一-龠仝〆ヶ]|[-_@0-9a-zA-Z]|[—―＿＠０-９Ａ-Ｚａ-ｚ　 ])+)$'
                     const re = new RegExp(pattern, 'g')
@@ -135,12 +135,12 @@ export const narou2html = (text: string) => {
                     if (item_type === "ruby") {
                         setMax10character()
                     }
-                    if (item_type === "ruby" && target.match(/^《.*[）\)]$/)) {
+                    if (item_type === "ruby" && /^《.*[）\)]$/.test(target)) {
                         // バグ再現用
                         text = text.replace(/[ 　].*$/, "")
                     }
                 } else if (line_item.length > 0) {
-                    if (isNarouRubyText(text) && !text.match(/^[ 　]/)) {
+                    if (isNarouRubyText(text) && !/^[ 　]/.test(text)) {
                         // 自動で範囲を探すのは、ひらがな、カタカナ、ー、・(中黒)、スペース のみ
                         [text, item_type] = autoDetectRubyBase(text)
                     } else {
@@ -162,7 +162,7 @@ export const narou2html = (text: string) => {
                         line_item[ruby_start_index].type = "text"
                     }
                     item_type = "text"
-                } else if (isNarouRubyText(text) && !text.match(/^[ 　]/) && (text.match(/[ 　]/g) || []).length < 2) {
+                } else if (isNarouRubyText(text) && !/^[ 　]/.test(text) && (text.match(/[ 　]/g) || []).length < 2) {
                     // （）で使えるルビは、ひらがな、カタカナ、ー、・(中黒)、スペース のみ
                     // スペースがカッコ直後ならルビにしない
                     // スペースが2つ以上含む場合、ルビにしない
@@ -201,7 +201,7 @@ export const narou2html = (text: string) => {
                     line_item.push({ type: item_type, text: target })
                 }
                 ruby_start_index = -1
-            } else if (target.match(/^[｜\|]/)) {
+            } else if (/^[｜\|]/.test(target)) {
                 if (ruby_start_index >= 0) {
                     line_item[ruby_start_index].type = "text"
                 }

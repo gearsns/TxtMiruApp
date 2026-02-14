@@ -1,6 +1,9 @@
-import { TxtMiruSitePlugin, appendSlash, checkForcePager, checkFetchAbortError, removeSlash, removeNodes, getHtmlDocument } from '../base'
+import { TxtMiruSitePlugin, SitePluginInfo, appendSlash, checkForcePager, checkFetchAbortError, removeSlash, removeNodes, getHtmlDocument } from '../base'
 import { TxtMiruLib } from '../../TxtMiruLib';
 import { db } from '../../store'
+import * as DB_FILEDS from '../../constants/db_fileds'
+
+const ALPHAPOLIS = "https://www.alphapolis.co.jp"
 
 const makeItem = (url: string, text: string) => {
     const doc = TxtMiruLib.HTML2Document(text)
@@ -8,11 +11,11 @@ const makeItem = (url: string, text: string) => {
     const item: TxtMiruItem = {
         url: url,
         className: "Alphapolis",
-        "title": doc.title,
+        title: doc.title,
         "next-episode-text": "次へ",
         "prev-episode-text": "前へ",
         "episode-index-text": "アルファポリス",
-        "episode-index": "https://www.alphapolis.co.jp"
+        "episode-index": ALPHAPOLIS
     }
     TxtMiruLib.KumihanMod(url, doc)
     const forcePager = checkForcePager(doc, item)
@@ -29,7 +32,7 @@ const makeItem = (url: string, text: string) => {
     }
     for (const el_a of doc.getElementsByTagName("A") as HTMLCollectionOf<HTMLAnchorElement>) {
         const href = el_a.getAttribute("href") || ""
-        if (!href.match(/^http/)) {
+        if (!/^http/.test(href)) {
             el_a.href = TxtMiruLib.ConvertAbsoluteURL(url, href)
         }
         if (el_a.className === "label-circle prev") {
@@ -43,13 +46,12 @@ const makeItem = (url: string, text: string) => {
             el_a.style.display = "none"
         }
     }
-    item["html"] = doc.body.innerHTML
+    item.html = doc.body.innerHTML
     return item
 }
 
 export class Alphapolis extends TxtMiruSitePlugin {
-    Match = (url: string): boolean => url.match(/www\.alphapolis\.co\.jp/) !== null
-
+    Match = (url: string): boolean => url.startsWith(ALPHAPOLIS)
     GetDocument = (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem | null> | null =>
         this.TryFetch(txtMiru, url, {
             charset: "UTF-8",
@@ -61,23 +63,22 @@ export class Alphapolis extends TxtMiruSitePlugin {
                     .then(text => makeItem(url, text))
                     .catch(err => checkFetchAbortError(err, url))
         )
-    GetInfo = async (txtMiru: TxtMiru, url: string | string[], callback: ((urls: string[]) => void) | null = null): Promise<any> => {
-        if (Array.isArray(url)) {
-            return await this.GetArrayInfo(txtMiru, url, callback)
-        } else if (this.Match(url)) {
-            callback?.([url])
-            url = appendSlash(url)
-            const r = url.match(/(https:\/\/www\.alphapolis\.co\.jp\/novel\/[0-9]+\/[0-9]+\/)/)
+    GetInfo = async (txtMiru: TxtMiru, urls: string | string[], callback: ((urls: string[]) => void) | null = null): Promise<SitePluginInfo[] | null> => {
+        const results: SitePluginInfo[] = [];
+        for (const url of (Array.isArray(urls) ? urls : [urls])) {
+            if (!this.Match(url)) { continue; }
+            const r = appendSlash(url).match(/(https:\/\/www\.alphapolis\.co\.jp\/novel\/[0-9]+\/[0-9]+\/)/)
             if (!r) {
-                return null
+                continue
             }
+            callback?.([url])
             const index_url = r[1]
-            const req_url = `${db.setting["WebServerUrl"]}?${new URLSearchParams({
+            const req_url = `${db.setting[DB_FILEDS.WEBSERVERURL]}?${new URLSearchParams({
                 url: `${index_url}`,
                 charset: "UTF-8",
                 cookie: "request"
             })}`
-            const doc = await getHtmlDocument(req_url)
+            const doc = await getHtmlDocument(req_url, txtMiru)
             let name = doc.title
             let author = ""
             let max_page = 0
@@ -93,28 +94,28 @@ export class Alphapolis extends TxtMiruSitePlugin {
             for (const el_main of doc.getElementsByClassName("body")) {
                 max_page = el_main.getElementsByClassName("episode").length
             }
-            return {
+            results.push({
                 url: removeSlash(url),
                 max_page: max_page,
                 name: name,
                 author: author
-            }
+            })
         }
-        return null
+        return results
     }
-    GetPageNo = async (_: TxtMiru, url: string): Promise<{ url: string, page_no: number, index_url: string } | null> => {
+    GetPageNo = async (txtMiru: TxtMiru, url: string): Promise<{ url: string, page_no: number, index_url: string } | null> => {
         if (this.Match(url)) {
             url = appendSlash(url)
             let r
             if (r = url.match(/(https:\/\/www\.alphapolis\.co\.jp\/novel\/.*?)\/(episode\/.*)\/$/)) {
                 const page_url = r[2]
                 const index_url = r[1]
-                const req_url = `${db.setting["WebServerUrl"]}?${new URLSearchParams({
+                const req_url = `${db.setting[DB_FILEDS.WEBSERVERURL]}?${new URLSearchParams({
                     url: index_url,
                     charset: "UTF-8",
                     cookie: "request"
                 })}`
-                const doc = await getHtmlDocument(req_url)
+                const doc = await getHtmlDocument(req_url, txtMiru)
                 let page_no = 0
                 for (const anchor of doc.getElementsByTagName("A") as HTMLCollectionOf<HTMLAnchorElement>) {
                     if (anchor.getElementsByClassName("title").length > 0) {
@@ -125,7 +126,7 @@ export class Alphapolis extends TxtMiruSitePlugin {
                     }
                 }
                 return { url: removeSlash(url), page_no: page_no, index_url: index_url }
-            } else if (url.match(/https:\/\/www\.alphapolis\.co\.jp\/novel\/[0-9]+\/[0-9]+\/$/)) {
+            } else if (/https:\/\/www\.alphapolis\.co\.jp\/novel\/[0-9]+\/[0-9]+\/$/.test(url)) {
                 return { url: removeSlash(url), page_no: 0, index_url: removeSlash(url) }
             }
         }

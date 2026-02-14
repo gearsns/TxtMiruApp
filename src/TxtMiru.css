@@ -421,6 +421,17 @@ p {
     transform: translateX(0);
 }
 
+#control-button-panel div.url {
+    margin-top: 1rem;
+    color: whitesmoke;
+    font-size: 1.5rem;
+    padding: 0.5em;
+}
+
+#control-button-panel div.url a {
+    color: white
+}
+
 /* */
 
 /* 共通のスタイルを一括定義 */
@@ -472,13 +483,18 @@ p {
     opacity: 0;
 }
 
-.TxtMiruTopContentsLocalHistory .novel_sublist,
 .TxtMiruTopContentsHistory .novel_sublist {
+    display: list-item;
     list-style: cjk-ideographic;
     margin-top: 2rem;
 }
 
-.TxtMiruTopContentsLocalHistory .novel_sublist a,
+#TxtMiruTopContentsLocalHistoryList.hide,
+#TxtMiruTopContentsHistoryList.hide,
+.TxtMiruTopContentsHistory .hide {
+    display: none;
+}
+
 .TxtMiruTopContentsHistory .novel_sublist a {
     text-decoration: none !important;
 }

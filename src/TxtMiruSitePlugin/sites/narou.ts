@@ -1,6 +1,7 @@
 import { TxtMiruSitePlugin, appendSlash, checkForcePager, checkFetchAbortError, SitePluginInfo } from '../base'
 import { TxtMiruLib } from '../../TxtMiruLib';
 import { db } from '../../store'
+import * as DB_FILEDS from '../../constants/db_fileds'
 import fetchJsonp from 'fetch-jsonp'
 
 const makeItem = (url: string, text: string): TxtMiruItem => {
@@ -11,7 +12,7 @@ const makeItem = (url: string, text: string): TxtMiruItem => {
     const forcePager = checkForcePager(doc, item);
     for (const el_a of Array.from(doc.getElementsByTagName("A") as HTMLCollectionOf<HTMLAnchorElement>)) {
         const href = el_a.getAttribute("href") || "";
-        if (!href.match(/^http/)) {
+        if (!/^http/.test(href)) {
             el_a.href = TxtMiruLib.ConvertAbsoluteURL(url, href);
         }
         const classlist = el_a.classList;
@@ -28,11 +29,11 @@ const makeItem = (url: string, text: string): TxtMiruItem => {
     }
     const el_chapter = doc.querySelector(".p-novel__subtitle-chapter")
     if (el_chapter) {
-        item["title"] += ` ${el_chapter.textContent}`
+        item.title += ` ${el_chapter.textContent}`
     }
     const el_episode = doc.querySelector(".p-novel__subtitle-episode")
     if (el_episode) {
-        item["title"] += ` ${el_episode.textContent}`
+        item.title += ` ${el_episode.textContent}`
     }
     for (const el of doc.getElementsByClassName("long_update")) {
         let el_rev = null
@@ -45,7 +46,7 @@ const makeItem = (url: string, text: string): TxtMiruItem => {
             el.insertBefore(el_rev, el.firstChild)
         }
     }
-    item["html"] = doc.body.innerHTML;
+    item.html = doc.body.innerHTML;
     return item;
 }
 const getNcode = (url: string) => {
@@ -66,11 +67,11 @@ const getUpdateInfo = async (url: string) => {
 }
 
 export class Narou extends TxtMiruSitePlugin {
-    Match = (url: string) => url.match(/https:\/\/.*\.syosetu\.com/) !== null;
+    Match = (url: string) => /https:\/\/.*\.syosetu\.com/.test(url);
     GetDocument = async (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem | null> =>
         this.TryFetch(txtMiru, url, {
             charset: "UTF-8",
-            cookie: (db.setting["over18"] === "yes") ? "over18=yes" : ""
+            cookie: (db.setting[DB_FILEDS.OVER18] === "yes") ? "over18=yes" : ""
         },
             async (fetchOpt: RequestInit, req_url: string) =>
                 fetch(req_url, fetchOpt)
@@ -78,15 +79,13 @@ export class Narou extends TxtMiruSitePlugin {
                     .then(text => makeItem(url, text))
                     .catch(err => checkFetchAbortError(err, url))
         );
-    GetInfo = async (_: TxtMiru, url: string | string[], callback: ((urls: string[]) => void) | null = null) => {
+    GetInfo = async (_: TxtMiru, url: string | string[], callback: ((urls: string[]) => void) | null = null): Promise<SitePluginInfo[] | null> => {
         if (Array.isArray(url)) {
             let results: SitePluginInfo[] = []
             let requests: string[] = []
             let item_list: string[] = []
             const addItem = async () => {
-                if (callback) {
-                    callback(item_list)
-                }
+                callback?.(item_list)
                 for (const item of await getUpdateInfo(requests.join("-"))) {
                     if (item.ncode) {
                         results.push({
@@ -112,7 +111,7 @@ export class Narou extends TxtMiruSitePlugin {
             if (requests.length > 0) {
                 await addItem()
             }
-            const out_results = []
+            const out_results: SitePluginInfo[] = []
             const resultMap = new Map(results.map(r => [r.url, r]))
             for (const u of url) {
                 const item = resultMap.get(getNcode(u))
@@ -131,12 +130,12 @@ export class Narou extends TxtMiruSitePlugin {
             const ncode = getNcode(url)
             for (const item of await getUpdateInfo(url)) {
                 if (item.ncode && ncode === item.ncode.toUpperCase()) {
-                    return {
+                    return [{
                         url: appendSlash(url),
                         max_page: item.general_all_no,
                         name: item.title,
                         author: item.writer
-                    }
+                    }]
                 }
             }
         }
@@ -150,7 +149,7 @@ export class Narou extends TxtMiruSitePlugin {
                 const page_no = parseInt(m[2]) | 0
                 const index_url = appendSlash(m[1])
                 return { url: url, page_no: page_no, index_url: index_url }
-            } else if (url.match(/https:\/\/.*\.syosetu\.com\/n[A-Za-z0-9]+\/$/)) {
+            } else if (/https:\/\/.*\.syosetu\.com\/n[A-Za-z0-9]+\/$/.test(url)) {
                 return { url: url, page_no: 0, index_url: url }
             }
         }

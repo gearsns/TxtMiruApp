@@ -1,4 +1,5 @@
 import { Dexie, type EntityTable } from "dexie"
+import * as DB_FILEDS from './constants/db_fileds'
 
 interface SettingField {
     id: string
@@ -39,7 +40,7 @@ export class Store extends Dexie {
                 this._setting[item.id] = item.value
             }
         })
-        this._setting["local_history"] = this._setting["local_history_index"] = null
+        this._setting[DB_FILEDS.LOCAL_HISTORY] = this._setting[DB_FILEDS.LOCAL_HISTORY_INDEX] = null
     }
     get setting(): Record<string, any> {
         return this._setting
@@ -58,12 +59,12 @@ export class Store extends Dexie {
         return await this.Setting.put(item)
     }
     addFavorite = async (name: string, author: string, url: string, cur_url: string, cur_page: number, max_page: number, fetchOpt?: RequestInit) => {
-        if (this._setting["UserID"]) {
-            const server = this._setting["WebServerUrl"]
+        if (this._setting[DB_FILEDS.USER_ID]) {
+            const server = this._setting[DB_FILEDS.WEBSERVERURL]
             const req_url = `${server}?${new URLSearchParams(
                 {
                     func: "add_favorite",
-                    uid: this._setting["UserID"] as string,
+                    uid: this._setting[DB_FILEDS.USER_ID] as string,
                     name: name,
                     author: author,
                     url: url,
@@ -87,10 +88,10 @@ export class Store extends Dexie {
         })
     }
     getFavoriteList = async (fetchOpt?: RequestInit) => {
-        if (this._setting["UserID"]) {
-            const server = this._setting["WebServerUrl"]
+        if (this._setting[DB_FILEDS.USER_ID]) {
+            const server = this._setting[DB_FILEDS.WEBSERVERURL]
             const req_url = `${server}?${new URLSearchParams({
-                func: "get_favorites", uid: this._setting["UserID"] as string,
+                func: "get_favorites", uid: this._setting[DB_FILEDS.USER_ID] as string,
                 _no_cache_: Date.now().toString()
             })}`
             return await fetch(req_url, fetchOpt)
@@ -101,10 +102,10 @@ export class Store extends Dexie {
         return await this.Favorite.toArray()
     }
     getFavoriteByUrl = async (url: string, page_no: number = 0, cur_url: string = "", fetchOpt?: RequestInit) => {
-        if (this._setting["UserID"]) {
-            const server = this._setting["WebServerUrl"]
+        if (this._setting[DB_FILEDS.USER_ID]) {
+            const server = this._setting[DB_FILEDS.WEBSERVERURL]
             const req_url = `${server}?${new URLSearchParams({
-                func: "get_favorite_by_url", uid: this._setting["UserID"] as string,
+                func: "get_favorite_by_url", uid: this._setting[DB_FILEDS.USER_ID] as string,
                 url: url, page_no: page_no.toString(), cur_url: cur_url, _no_cache_: Date.now().toString()
             })}`
             return await fetch(req_url, fetchOpt)
@@ -115,17 +116,17 @@ export class Store extends Dexie {
         return await this.Favorite.where({ url: url }).toArray()
     }
     setFavorite = async (id: string, item: Partial<FavoriteField>, fetchOpt?: RequestInit) => {
-        if (this._setting["UserID"]) {
+        if (this._setting[DB_FILEDS.USER_ID]) {
             let data: Record<string, string> = {
                 func: "update_favorite",
-                uid: this._setting["UserID"] as string,
+                uid: this._setting[DB_FILEDS.USER_ID] as string,
                 id: id,
                 _no_cache_: Date.now().toString(),
             }
             for (const [key, value] of Object.entries(item)) {
                 data[key] = String(value)
             }
-            const server = this._setting["WebServerUrl"]
+            const server = this._setting[DB_FILEDS.WEBSERVERURL]
             const req_url = `${server}?${new URLSearchParams(data)} `
             return await fetch(req_url, fetchOpt)
                 .then(response => response.json())
@@ -135,12 +136,12 @@ export class Store extends Dexie {
         return await this.Favorite.update(id, item)
     }
     deleteFavorite = async (id: string) => {
-        if (this._setting["UserID"]) {
-            const server = this._setting["WebServerUrl"]
+        if (this._setting[DB_FILEDS.USER_ID]) {
+            const server = this._setting[DB_FILEDS.WEBSERVERURL]
             const req_url = `${server}?${new URLSearchParams(
                 {
                     func: "delete_favorite",
-                    uid: this._setting["UserID"] as string,
+                    uid: this._setting[DB_FILEDS.USER_ID] as string,
                     id: id,
                     _no_cache_: Date.now().toString()
                 })}`

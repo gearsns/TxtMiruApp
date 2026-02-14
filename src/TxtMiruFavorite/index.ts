@@ -3,6 +3,7 @@ import { TxtMiruLoading } from '../TxtMiruLoading';
 import css from "./style.css?inline"
 import html from "./index.html?raw"
 import { db } from '../store'
+import * as DB_FILEDS from '../constants/db_fileds'
 import { TxtMiruMessageBox } from '../TxtMiruMessageBox';
 import { sharedStyles } from '../style'
 import { openInputURL } from '../TxtMiruInputURL';
@@ -21,7 +22,6 @@ interface FavoriteItem {
 
 export class TxtMiruFavorite extends HTMLElement {
     private favoriteList: FavoriteItem[] = [];
-    private txtMiru: TxtMiru;
     private loader: TxtMiruLoading;
     private shadow: ShadowRoot;
     private fetchAbortController: AbortController | null = null
@@ -31,10 +31,6 @@ export class TxtMiruFavorite extends HTMLElement {
     constructor() {
         super();
         this.loader = new TxtMiruLoading();
-        this.txtMiru = {
-            updateMessage: this.loader.update,
-            signal: this.fetchAbortController?.signal,
-        }
         // Shadow DOMの初期化
         this.shadow = this.attachShadow({ mode: 'open' });
 
@@ -87,8 +83,8 @@ export class TxtMiruFavorite extends HTMLElement {
             if (!list || list.length === 0) {
                 tr_list.push(`<tr><td colspan="6" style="width:100vw">お気に入りが登録されていません。`);
             } else {
-                const column_name = db.setting["favorite-sort-column"];
-                const column_name_order = db.setting["favorite-sort-column-order"];
+                const column_name = db.setting[DB_FILEDS.FAVORITE_SORT_COLUMN];
+                const column_name_order = db.setting[DB_FILEDS.FAVORITE_SORT_COLUMN_ORDER];
                 const order_dir = (column_name === column_name_order) ? 1 : -1;
 
                 this.sortList(list, column_name, order_dir);
@@ -166,15 +162,14 @@ export class TxtMiruFavorite extends HTMLElement {
     private setEvent(): void {
         const getEl = (id: string) => this.shadow.getElementById(id);
         const loadNovel = (id: string) => {
-            for (const tr of getEl("novel_list_body")?.getElementsByTagName("TR") ?? []) {
-                if (tr.className === "check_on") {
-                    this.hide()
-                    const url = tr.getAttribute(id);
-                    if (url) {
-                        this.savedCallback?.(url);
-                    }
-                    return
+            const target = this.shadow.querySelector("#novel_list_body tr.check_on");
+            if (target) {
+                this.hide()
+                const url = target.getAttribute(id);
+                if (url) {
+                    this.savedCallback?.(url);
                 }
+                return
             }
         }
         // 閉じる
@@ -185,28 +180,19 @@ export class TxtMiruFavorite extends HTMLElement {
 
         // 追加
         getEl("regist")?.addEventListener("click", () => {
-            openInputURL(() => {}, (url: string) => this.addSite(url));
+            openInputURL(() => { }, (url: string) => this.addSite(url));
         });
         // 削除
         getEl("delete")?.addEventListener("click", () => {
-            let count = 0
-            for (const tr of getEl("novel_list_body")?.getElementsByTagName("TR") ?? []) {
-                if (tr.className === "check_on") {
-                    ++count
-                }
-            }
-            if (count > 0) {
+            if (this.shadow.querySelector("#novel_list_body tr.check_on")) {
                 TxtMiruMessageBox.show("選択されているページをお気に入りから削除します。", { "buttons": [{ text: "削除", className: "seigaiha_blue", value: "delete" }, "削除しない"] }).then(async e => {
-                    if (e === "delete") {
-                        this.loader.begin()
-                        for (const tr of getEl("novel_list_body")?.getElementsByTagName("TR") ?? []) {
-                            if (tr.className === "check_on") {
-                                await db.deleteFavorite(String(tr.getAttribute("item_id") ?? 0))
-                            }
-                        }
-                        await this.reload()
-                        this.loader.end()
+                    if (e !== "delete") { return; }
+                    this.loader.begin()
+                    for (const tr of this.shadow.querySelectorAll("#novel_list_body tr.check_on")) {
+                        await db.deleteFavorite(String(tr.getAttribute("item_id") ?? 0))
                     }
+                    await this.reload()
+                    this.loader.end()
                 })
             } else {
                 TxtMiruMessageBox.show("お気に入りから削除したいページを選択してください。", { "buttons": ["閉じる"] }).then(e => { })
@@ -214,61 +200,48 @@ export class TxtMiruFavorite extends HTMLElement {
         })
         // 最新情報に更新
         getEl("update")?.addEventListener("click", async () => {
-            this.loader.begin()
+            const loading = this.loader.begin()
             try {
                 const url_list = []
-                const tr_list = getEl("novel_list_body")?.getElementsByTagName("TR") ?? []
+                const tr_list = this.shadow.querySelectorAll("#novel_list_body tr");
                 for (const tr of tr_list) {
-                    if (tr.className === "check_on") {
-                        const url = tr.getAttribute("url")
-                        if (url) {
-                            url_list.push(url)
-                        }
+                    const url = tr.getAttribute("url")
+                    if (!tr.getAttribute('source') && url && tr.className === "check_on") {
+                        url_list.push(url)
                     }
                 }
                 if (url_list.length === 0) {
                     for (const tr of tr_list) {
-                        if (tr.getAttribute("source")) {
-                            continue
-                        }
                         const url = tr.getAttribute("url")
-                        if (url) {
+                        if (!tr.getAttribute('source') && url) {
                             url_list.push(url)
                         }
                     }
                 }
-                let results = []
                 for (const site of TxtMiruSiteManager.SiteList) {
-                    results = await site.GetInfo(this.txtMiru, url_list, item_list => {
+                    const results = await site.GetInfo(loading, url_list, item_list => {
                         const arr = ["取得中..."]
-                        for (const url of item_list) {
-                            let exists = false
-                            for (const tr of tr_list) {
-                                if (tr.className === "loading") {
-                                    tr.className = "check_on"
-                                }
-                                if (url === tr.getAttribute("url")) {
-                                    tr.className = "loading"
-                                    arr.push((tr.getElementsByClassName("novel_title")[0] as HTMLElement).innerText)
-                                    exists = true
-                                    break
-                                }
+                        for (const tr of tr_list) {
+                            const target_url = tr.getAttribute("url") as string
+                            if (!site.Match(target_url)) { continue; }
+                            if (tr.className === "loading") {
+                                tr.className = "check_on"
                             }
-                            if (!exists) {
-                                arr.push(url)
+                            if (item_list.includes(target_url)) {
+                                tr.className = "loading"
+                                arr.push((tr.getElementsByClassName("novel_title")[0] as HTMLElement).innerText)
                             }
                         }
                         this.loader.update(arr)
                     })
-                    if (results) {
+                    if (results && results.length > 0) {
                         for (const tr of tr_list) {
                             const url = tr.getAttribute("url")
-                            for (const item of results) {
-                                if (item.url === url) {
-                                    await db.setFavorite(String(tr.getAttribute("item_id") ?? 0), item, this.getFetchOption())
-                                    if (this.fetchAbortController?.signal.aborted) {
-                                        break;
-                                    }
+                            const result = results.find(item => item.url === url)
+                            if (result) {
+                                await db.setFavorite(String(tr.getAttribute("item_id") ?? 0), result, this.getFetchOption())
+                                if (this.fetchAbortController?.signal.aborted) {
+                                    break;
                                 }
                             }
                             if (this.fetchAbortController?.signal.aborted) {
@@ -293,10 +266,6 @@ export class TxtMiruFavorite extends HTMLElement {
         getEl("first")?.addEventListener("click", () => { loadNovel("url") })
         // 続きから
         getEl("continue")?.addEventListener("click", () => { loadNovel("cur_url") })
-        //
-        getEl("close-url")?.addEventListener("click", () => {
-            getEl("url-modal")!.classList.add("hide");
-        });
 
         // リスト内クリック（選択）
         getEl("novel_list_body")?.addEventListener("click", (e) => {
@@ -330,10 +299,10 @@ export class TxtMiruFavorite extends HTMLElement {
                 const name = target.getAttribute("name") as string
                 await db.setSetting([
                     {
-                        id: "favorite-sort-column-order",
-                        value: db.setting["favorite-sort-column-order"] === name ? "" : name
+                        id: DB_FILEDS.FAVORITE_SORT_COLUMN_ORDER,
+                        value: db.setting[DB_FILEDS.FAVORITE_SORT_COLUMN_ORDER] === name ? "" : name
                     }, {
-                        id: "favorite-sort-column", value: name
+                        id: DB_FILEDS.FAVORITE_SORT_COLUMN, value: name
                     }
                 ]);
                 this.dispList()
@@ -344,31 +313,31 @@ export class TxtMiruFavorite extends HTMLElement {
 
     private async addSite(url: string): Promise<void> {
         if (!url) return;
-
-        this.loader.begin();
+        if (/^n/.test(url)) url = `https://ncode.syosetu.com/${url}`;
+        const site = TxtMiruSiteManager.FindSite(url);
+        if (!site) {
+            return;
+        }
+        const loading = this.loader.begin();
         try {
-            if (url.match(/^n/)) url = `https://ncode.syosetu.com/${url}`;
-            const site = TxtMiruSiteManager.FindSite(url);
-            if (site) {
-                const page = await site.GetPageNo(this.txtMiru, url);
-                if (page?.url) {
-                    const item = await db.getFavoriteByUrl(page.index_url, 0, "", this.getFetchOption());
-                    if (item?.length > 0) {
-                        if (item[0].cur_page < page.page_no) {
-                            await db.setFavorite(item[0].id, { cur_page: page.page_no, cur_url: url }, this.getFetchOption());
-                        } else {
-                            TxtMiruMessageBox.show(`${url}<br>は既に登録されています。`, { "buttons": ["閉じる"] }).then(e => { })
-                        }
+            const page = await site.GetPageNo(loading, url);
+            if (page?.url) {
+                const item = await db.getFavoriteByUrl(page.index_url, 0, "", this.getFetchOption());
+                if (item?.length > 0) {
+                    if (item[0].cur_page < page.page_no) {
+                        await db.setFavorite(item[0].id, { cur_page: page.page_no, cur_url: url }, this.getFetchOption());
                     } else {
-                        const info = await site.GetInfo(this.txtMiru, page.index_url);
-                        if (info?.name?.length > 0) {
-                            await db.addFavorite(info.name, info.author, page.index_url, page.url, page.page_no, info.max_page, this.getFetchOption());
-                        } else {
-                            TxtMiruMessageBox.show(`ページ情報の取得に失敗しました。<br>${url}`, { "buttons": ["閉じる"] }).then(e => { })
-                        }
+                        TxtMiruMessageBox.show(`${url}<br>は既に登録されています。`, { "buttons": ["閉じる"] }).then(e => { })
                     }
-                    await this.reload();
+                } else {
+                    const info = await site.GetInfo(loading, page.index_url);
+                    if (info && info[0].name?.length > 0) {
+                        await db.addFavorite(info[0].name, info[0].author, page.index_url, page.url, page.page_no, info[0].max_page, this.getFetchOption());
+                    } else {
+                        TxtMiruMessageBox.show(`ページ情報の取得に失敗しました。<br>${url}`, { "buttons": ["閉じる"] }).then(e => { })
+                    }
                 }
+                await this.reload();
             }
         } catch {
 

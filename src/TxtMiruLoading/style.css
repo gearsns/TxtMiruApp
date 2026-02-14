@@ -6,7 +6,7 @@
   display: none !important;
 }
 
-.show {
+.top {
   position: fixed;
   top: 0;
   left: 0;

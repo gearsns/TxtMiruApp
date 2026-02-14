@@ -95,7 +95,7 @@ export class TxtMiruLocalFile extends HTMLElement {
                 }
             };
 
-            for (const item of Array.from(items)) {
+            for (const item of items) {
                 const entry = item.webkitGetAsEntry() as (FileSystemFileEntry | FileSystemDirectoryEntry | null);
                 if (entry) await traverseFileTree(entry);
             }
@@ -123,17 +123,17 @@ export class TxtMiruLocalFile extends HTMLElement {
             const fileName = item.fullpath || (item as ExtendedFile).webkitRelativePath || item.name;
             const url = `${index_url}/${fileName}`;
 
-            if (item.name.match(/\.(?:htm|html|xhtml|txt|zip|epub)$/i)) {
+            if (/\.(?:htm|html|xhtml|txt|zip|epub)$/i.test(item.name)) {
                 const cache: TxtMiruItem = { url, file: item };
 
-                if (item.name.match(/\.(?:txt)$/i)) {
+                if (/\.(?:txt)$/i.test(item.name)) {
                     cache[format] = true;
-                } else if (item.name.match(/\.(?:zip|epub)$/i)) {
+                } else if (/\.(?:zip|epub)$/i.test(item.name)) {
                     cache.zip = true;
                     cache[format] = true;
                 }
                 url_list.push({ url, cache, name: fileName });
-            } else if (item.name.match(/\.(?:jpg|jpeg|png|gif)$/i)) {
+            } else if (/\.(?:jpg|jpeg|png|gif)$/i.test(item.name)) {
                 caches.push({ url, html: undefined, file: item });
             }
         }
@@ -207,9 +207,7 @@ export class TxtMiruLocalFile extends HTMLElement {
 }
 
 // カスタム要素として登録
-if (!customElements.get('txtmiru-local-file')) {
-    customElements.define('txtmiru-local-file', TxtMiruLocalFile);
-}
+customElements.define('txtmiru-local-file', TxtMiruLocalFile);
 
 export const openLocalFileLoader = (closedCallback: () => void, loadnovelCallback: (url: string, files: TxtMiruItem[]) => void) => {
     let el = document.querySelector('txtmiru-local-file') as TxtMiruLocalFile;

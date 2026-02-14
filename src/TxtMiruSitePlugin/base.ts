@@ -1,7 +1,6 @@
 import { TxtMiruLib } from '../TxtMiruLib'
 import { db } from '../store'
-
-// txtmiru. signal, loading getCache
+import * as DB_FILEDS from '../constants/db_fileds'
 
 export interface SitePluginInfo {
     url: string;
@@ -11,7 +10,7 @@ export interface SitePluginInfo {
 }
 
 const sleep = (time: number) => new Promise(resolve => setTimeout(resolve, time));
-export const appendSlash = (text: string): string => text.match(/\/$/) ? text : text + "/";
+export const appendSlash = (text: string): string => /\/$/.test(text) ? text : `${text}/`;
 export const removeSlash = (text: string): string => text.replace(/\/$/, "");
 
 export const removeNodes = (remove_nodes: (Node | null)[] | NodeListOf<Element> | HTMLCollectionOf<Element>) => {
@@ -28,11 +27,6 @@ export const setItemEpisodeText = <k extends TxtMiruItemBaseKeys>(id: k, href: s
 const setItemEpisodeElement = (id: string, el_a: HTMLAnchorElement, item: TxtMiruItem) =>
     setItemEpisodeText(id as keyof TxtMiruItem, el_a.href, el_a.textContent || "", item);
 
-interface TxtMiruFunctions {
-    setPrevEpisode: (el: any, item: TxtMiruItem) => void;
-    setNextEpisode: (el: any, item: TxtMiruItem) => void;
-    setEpisodeIndex: (el: any, item: TxtMiruItem) => void;
-}
 export const checkForcePager = (doc: Document, item: TxtMiruItem) => {
     const elTxtMiruCurPage = doc.getElementById("TxtMiruCurPage");
     const elTxtMiruPrevPage = doc.getElementById("TxtMiruPrevPage") as HTMLAnchorElement | null;
@@ -73,112 +67,101 @@ export const parseHtml = (url: string, index_url: string, html: string, class_na
         className: class_name,
         title: doc.title
     };
-    for (const e of Array.from(doc.querySelectorAll(".title"))) {
+    for (const e of doc.querySelectorAll(".title")) {
         if (e.textContent) {
-            item["title"] = e.textContent;
+            item.title = e.textContent;
         }
     }
-    for (const e of Array.from(doc.querySelectorAll(".author"))) {
+    for (const e of doc.querySelectorAll(".author")) {
         if (e.textContent) {
-            item["title"] += " - " + e.textContent;
+            item.title += " - " + e.textContent;
             break;
         }
     }
-    item["top-title"] = item["title"];
+    item["top-title"] = item.title;
 
     const contentHtml = doc.body.innerHTML;
-    if (contentHtml.length > 50000) {
+    const main_e = doc.querySelector(".main_text");
+    if (contentHtml.length > 50000 && main_e) {
         const m = url.match(/\?([0-9]+)/i);
-        const target_no = m ? parseInt(m[1]) : 0;
-        const main_e = doc.querySelector(".main_text");
-        if (main_e) {
-            let page = 0;
-            let type = 0;
-            const e_list: Node[] = [];
-            if (target_no === 0) {
-                const e_div = doc.createElement("div");
-                e_div.className = "index_box";
-                for (const e of Array.from(main_e.childNodes)) {
-                    const el = e as HTMLElement;
-                    if (el.className && el.className.match(/jisage/)) {
-                        const e_o_midashi = el.querySelector(".o-midashi");
-                        const e_naka_midashi = el.querySelector(".naka-midashi");
-                        if (e_o_midashi) {
-                            ++page;
-                            type = 1;
-                            const e_ctitle = doc.createElement("div");
-                            e_ctitle.className = "chapter_title";
-                            e_ctitle.innerHTML = e_o_midashi.textContent || "";
-                            e_div.appendChild(e_ctitle);
-                        } else if (e_naka_midashi) {
-                            if (type !== 1) ++page;
-                            type = 2;
-                            const sub_html = e_naka_midashi.textContent || "";
-                            if (page === 1) {
-                                setItemEpisodeText("next-episode", `${index_url}?1`, sub_html || "次へ", item);
-                            }
-                            const e_dl_stitle = doc.createElement("dl");
-                            e_dl_stitle.className = "novel_sublist2";
-                            const e_dd_stitle = doc.createElement("dd");
-                            e_dd_stitle.className = "subtitle";
-                            const e_a_stitle = doc.createElement("a");
-                            e_a_stitle.innerHTML = sub_html;
-                            e_a_stitle.href = `${index_url.replace(/.*\//, "./")}?${page}`;
-                            e_dd_stitle.appendChild(e_a_stitle);
-                            e_dl_stitle.appendChild(e_dd_stitle);
-                            e_div.appendChild(e_dl_stitle);
+        const target_no = m ? parseInt(m[1], 10) : 0;
+        const relativeIndexUrl = index_url.replace(/.*\//, "./");
+        let page = 0;
+        let type = 0; // 1: o-midashi, 2: naka-midashi
+        const fragment = document.createDocumentFragment();
+        if (target_no === 0) {
+            const e_div = doc.createElement("div");
+            e_div.className = "index_box";
+            for (const el of main_e.childNodes as NodeListOf<HTMLElement>) {
+                if (el.className && el.className.includes("jisage")) {
+                    const e_o_midashi = el.querySelector(".o-midashi");
+                    const e_naka_midashi = el.querySelector(".naka-midashi");
+                    if (e_o_midashi) {
+                        ++page;
+                        type = 1;
+                        const e_ctitle = doc.createElement("div");
+                        e_ctitle.className = "chapter_title";
+                        e_ctitle.textContent = e_o_midashi.textContent;
+                        e_div.appendChild(e_ctitle);
+                    } else if (e_naka_midashi) {
+                        if (type !== 1) ++page;
+                        type = 2;
+                        const sub_html = TxtMiruLib.EscapeHtml(e_naka_midashi.textContent || "");
+                        if (page === 1) {
+                            setItemEpisodeText("next-episode", `${index_url}?1`, sub_html || "次へ", item);
                         }
-                    }
-                    if (page === 0) e_list.push(e);
-                }
-                e_list.push(e_div);
-            } else if (target_no > 0) {
-                setItemEpisodeText("prev-episode", index_url, "目次へ", item);
-                for (const e of Array.from(main_e.childNodes)) {
-                    const el = e as HTMLElement;
-                    if (el.className && el.className.match(/jisage/)) {
-                        const e_naka_midashi = el.querySelector(".naka-midashi");
-                        if (el.querySelector(".o-midashi")) {
-                            ++page;
-                            type = 1;
-                        } else if (e_naka_midashi) {
-                            if (type !== 1) ++page;
-                            type = 2;
-                            if (page === target_no) {
-                                item["title"] += " " + e_naka_midashi.textContent;
-                            } else if (page === target_no - 1) {
-                                setItemEpisodeText("prev-episode", `${index_url}?${target_no - 1}`, e_naka_midashi.textContent || "前へ", item);
-                            } else if (page === target_no + 1) {
-                                setItemEpisodeText("next-episode", `${index_url}?${target_no + 1}`, e_naka_midashi.textContent || "次へ", item);
-                                break;
-                            }
-                        }
-                    }
-                    if (page === target_no || (page === 0 && (el.className === "title" || el.className === "author"))) {
-                        if (el.className === "title") {
-                            const e_anchor = document.createElement("a");
-                            e_anchor.href = `${index_url.replace(/.*\//, "./")}`;
-                            e_anchor.appendChild(el);
-                            e_list.push(e_anchor);
-                        } else {
-                            e_list.push(el);
-                        }
+                        const e_dl_stitle = doc.createElement("dl");
+                        e_dl_stitle.className = "novel_sublist2";
+                        e_dl_stitle.innerHTML = `<dd class="subtitle"><a href="${relativeIndexUrl}?${page}">${sub_html}</a></dd>`;
+                        e_div.appendChild(e_dl_stitle);
                     }
                 }
+                if (page === 0) fragment.appendChild(el.cloneNode(true));
             }
-            main_e.textContent = "";
-            for (const e of e_list) {
-                main_e.appendChild(e);
+            fragment.appendChild(e_div);
+        } else if (target_no > 0) {
+            setItemEpisodeText("prev-episode", index_url, "目次へ", item);
+            for (const el of main_e.childNodes as NodeListOf<HTMLElement>) {
+                if (el.className && el.className.includes("jisage")) {
+                    const e_naka_midashi = el.querySelector(".naka-midashi");
+                    if (el.querySelector(".o-midashi")) {
+                        ++page;
+                        type = 1;
+                    } else if (e_naka_midashi) {
+                        if (type !== 1) ++page;
+                        type = 2;
+                        if (page === target_no) {
+                            item.title += " " + e_naka_midashi.textContent;
+                        } else if (page === target_no - 1) {
+                            setItemEpisodeText("prev-episode", `${index_url}?${target_no - 1}`, e_naka_midashi.textContent || "前へ", item);
+                        } else if (page === target_no + 1) {
+                            setItemEpisodeText("next-episode", `${index_url}?${target_no + 1}`, e_naka_midashi.textContent || "次へ", item);
+                            break;
+                        }
+                    }
+                }
+                if (page === target_no || (page === 0 && (el.className === "title" || el.className === "author"))) {
+                    if (el.className === "title") {
+                        const e_anchor = document.createElement("a");
+                        e_anchor.href = relativeIndexUrl;
+                        e_anchor.appendChild(el);
+                        fragment.appendChild(e_anchor);
+                    } else {
+                        fragment.appendChild(el.cloneNode(true));
+                    }
+                }
             }
         }
+        main_e.textContent = "";
+        main_e.appendChild(fragment);
     }
     TxtMiruLib.KumihanMod(url, doc);
-    item["html"] = doc.body.innerHTML;
+    item.html = doc.body.innerHTML;
     return [item, doc];
 };
 
-export const getHtmlDocument = async (url: string): Promise<Document> => {
-    const html = await fetch(url).then(response => response.text());
+export const getHtmlDocument = async (url: string, txtMiru: TxtMiru): Promise<Document> => {
+    const html = await fetch(url, getFetchOption(txtMiru)).then(response => response.text());
     const parser = new DOMParser();
     return parser.parseFromString(html, "text/html");
 };
@@ -222,25 +205,14 @@ export const arrayBufferUnZip = async (arraybuffer: ArrayBuffer) => {
 export class TxtMiruSitePlugin {
     Match = (url: string): boolean => false;
     GetDocument = (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem | null> | null => null;
-    GetInfo = async (txtMiru: TxtMiru, url: string | string[], callback: ((urls: string[]) => void) | null = null): Promise<any> => false;
+    GetInfo = async (txtMiru: TxtMiru, url: string | string[], callback: ((urls: string[]) => void) | null = null): Promise<SitePluginInfo[] | null> => null;
     GetPageNo = async (txtMiru: TxtMiru, url: string): Promise<{ url: string, page_no: number, index_url: string } | null> => null;
     Name = (): string => "";
 
-    async GetArrayInfo(txtMiru: TxtMiru, url: string[], callback: ((urls: string[]) => void) | null = null): Promise<SitePluginInfo[]> {
-        const results: SitePluginInfo[] = [];
-        for (const u of url) {
-            if (this.Match(u)) {
-                const item = await this.GetInfo(txtMiru, u, callback);
-                if (item !== null) results.push(item);
-            }
-        }
-        return results;
-    }
-
     protected async TryFetch(txtMiru: TxtMiruDocParam, url: string, url_params: Record<string, string>, callback: Function): Promise<TxtMiruItem> {
         url_params["url"] ??= url;
-        const req_url = `${db.setting["WebServerUrl"]}?${new URLSearchParams(url_params)}`;
-        let item: any = null;
+        const req_url = `${db.setting[DB_FILEDS.WEBSERVERURL]}?${new URLSearchParams(url_params)}`;
+        let item: Error | TxtMiruItem | null = null;
         const fetchOpt = getFetchOption(txtMiru);
         for (let i = 1; i <= 5; ++i) {
             try {

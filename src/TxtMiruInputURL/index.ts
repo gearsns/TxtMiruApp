@@ -2,7 +2,6 @@ import html from "./index.html?raw"
 import { sharedStyles } from '../style'
 
 export class TxtMiruInputURL extends HTMLElement {
-    private isComposing: boolean = false;
     private root: ShadowRoot;
     private closeCallback: (() => void) | undefined;
     private savedCallback: ((url: string) => void) | undefined;
@@ -36,7 +35,7 @@ export class TxtMiruInputURL extends HTMLElement {
         input.select();
     }
 
-    public hideUrl = (): void => {
+    public hide = (): void => {
         this.getEl('container').classList.add("hide");
         // 呼び出し元への通知
         this.closeCallback?.()
@@ -44,35 +43,37 @@ export class TxtMiruInputURL extends HTMLElement {
 
     private jump = (): void => {
         let url = this.getEl<HTMLInputElement>("input-url").value;
-        if (url.match(/^n/)) {
+        if (/^n/.test(url)) {
             url = `https://ncode.syosetu.com/${url}`;
         }
         this.savedCallback?.(url)
-        this.hideUrl();
+        this.hide();
     }
 
     private setupEvents = (): void => {
+        let isComposing: boolean = false;
+
         const input = this.getEl<HTMLInputElement>("input-url");
         const inner = this.getEl("input-box-inner");
         const container = this.getEl("container");
 
-        input.addEventListener("compositionstart", () => { this.isComposing = true; });
-        input.addEventListener("compositionend", () => { this.isComposing = false; });
+        input.addEventListener("compositionstart", () => { isComposing = true; });
+        input.addEventListener("compositionend", () => { isComposing = false; });
 
         inner.addEventListener("click", (e) => e.stopPropagation());
-        container.addEventListener("click", () => this.hideUrl());
+        container.addEventListener("click", () => this.hide());
 
-        this.getEl("jump-url-close").addEventListener("click", () => this.hideUrl());
+        this.getEl("jump-url-close").addEventListener("click", () => this.hide());
         this.getEl("jump-url").addEventListener("click", () => this.jump());
 
         input.addEventListener("keydown", (e: KeyboardEvent) => {
-            if (this.isComposing) return;
+            if (isComposing) return;
 
             if (e.code === "Enter" || e.code === "NumpadEnter") {
                 this.jump();
                 e.preventDefault();
             } else if (e.code === "Escape") {
-                this.hideUrl();
+                this.hide();
                 e.preventDefault();
             }
         });

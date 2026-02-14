@@ -16,7 +16,7 @@ export class TxtMiruLoading extends HTMLElement {
         style.textContent = css
 
         this.loadingElement = document.createElement("div");
-        this.loadingElement.className = "show hide";
+        this.loadingElement.className = "top hide";
 
         shadow.appendChild(style);
         shadow.appendChild(this.loadingElement);
@@ -91,4 +91,3 @@ export class TxtMiruLoading extends HTMLElement {
 
 // カスタム要素として登録
 customElements.define('txtmiru-loading', TxtMiruLoading);
-

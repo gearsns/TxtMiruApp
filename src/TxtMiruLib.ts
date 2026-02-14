@@ -32,19 +32,19 @@ const split_str = (str: string, separator: RegExp): (string | string[])[] => {
 };
 
 const convertAbsoluteURL = (base_url: string, url: string): string => {
-    if (url.match(/^\/\//)) {
+    if (/^\/\//.test(url)) {
         const m = base_url.match(/^.*:/);
         if (m) return `${m[0]}${url}`;
     }
 
     let baseUrlWithSlash = base_url;
-    if (base_url.match(/[^\/]$/)) {
+    if (/[^\/]$/.test(base_url)) {
         baseUrlWithSlash += "/";
     }
 
     let arr_url: (string | null)[] = baseUrlWithSlash.replace(/\/$/, "").split("/");
 
-    if (url.match(/^\//)) {
+    if (/^\//.test(url)) {
         arr_url.length = 3;
         url = url.replace(/^\/+/, "");
     } else if (arr_url.length > 3) {
@@ -91,7 +91,7 @@ const escape_mark = (node: ChildNode): void => {
             .replace(/[―ー–－−ｰ—\-][―ー–－−ｰ—\-]+/g, (all) => {
                 let l = 0;
                 for (const text of all.split("")) {
-                    l += text.match(/[−ｰ—\-]/) ? 1 : 2;
+                    l += /[−ｰ—\-]/.test(text) ? 1 : 2;
                 }
                 return "―".repeat(Math.floor(l / 2) + 1);
             })
@@ -117,7 +117,7 @@ const escape_mark_list = (nodes: NodeListOf<ChildNode> | HTMLCollection): void =
 const tatechuuyoko_num = (node: ChildNode): number => {
     if (node.nodeType === Node.TEXT_NODE && node.nodeValue) {
         const parent = node.parentElement;
-        if (parent?.className === "tatechuyoko" || !node.nodeValue.match(/([0-9,\.]+)/)) {
+        if (parent?.className === "tatechuyoko" || !/([0-9,\.]+)/.test(node.nodeValue)) {
             return 0;
         }
 
@@ -133,19 +133,19 @@ const tatechuuyoko_num = (node: ChildNode): number => {
                 } else if (Array.isArray(arr[i])) {
                     const text = (arr[i] as string[]).join("");
                     // 西暦の日付チェック
-                    if (text.match(/^[0-9]{4}$/)) {
+                    if (/^[0-9]{4}$/.test(text)) {
                         const text_date = arr.slice(i).map(v => Array.isArray(v) ? v.join("") : v).join("");
-                        if (text_date.match(/^[0-9]{4}[\/ 年]+[0-9]{1,2}[\/ 月]+[0-9]{1,2}[ 日]+[0-9]{1,2}[\: ]+[0-9]{1,2}/)) {
+                        if (/^[0-9]{4}[\/ 年]+[0-9]{1,2}[\/ 月]+[0-9]{1,2}[ 日]+[0-9]{1,2}[\: ]+[0-9]{1,2}/.test(text_date)) {
                             skip_num = 8;
                             item_list.push(document.createTextNode(text));
                             continue;
-                        } else if (text_date.match(/^[0-9]{4}[\/ 年]+[0-9]{1,2}[\/ 月]+[0-9]{1,2}[日]*/)) {
+                        } else if (/^[0-9]{4}[\/ 年]+[0-9]{1,2}[\/ 月]+[0-9]{1,2}[日]*/.test(text_date)) {
                             skip_num = 4;
                             item_list.push(document.createTextNode(text));
                             continue;
                         }
                     }
-                    if (text.match(/[0-9]/) && text.length < 4) {
+                    if (/[0-9]/.test(text) && text.length < 4) {
                         const ltr_elm = document.createElement("span");
                         ltr_elm.className = "tatechuyoko";
                         ltr_elm.appendChild(document.createTextNode(text));
@@ -289,6 +289,12 @@ const yakumono_space_list = (nodes: NodeListOf<ChildNode>): void => {
     }
 };
 
+const setRubyStyle = (style: CSSStyleDeclaration, ls: number, mt: number, mb: number) => {
+    style.setProperty('--rt-letter-spacing', `${ls}em`);
+    style.setProperty("--rt-margin-top", `${mt}em`);
+    style.setProperty("--rt-margin-bottom", `${mb}em`);
+}
+
 const convert_ruby = (doc: Document): void => {
     const rubies = doc.getElementsByTagName("ruby");
     for (let i = 0; i < rubies.length; i++) {
@@ -315,60 +321,45 @@ const convert_ruby = (doc: Document): void => {
         }
         // rtが1つ、かつベーステキストが存在する場合に処理
         if (rt_list.length === 1 && rb_text.length > 0) {
-            const styles: Record<string, string> = {};
             const rt_text = (rt_list[0] as HTMLElement).innerText
                 .replace(/゛/g, "\u3099").replace(/／＼/g, "\u3033\u3035")
                 .replace(/／″＼/g, "\u3034\u3035").replace(/゜/g, "\u209A");
             item.setAttribute("data-ruby", rt_text);
 
-            if (!rt_text.match(/^[A-Za-z0-9 -/:-@\[-~]+$/)) {
+            if (!/^[A-Za-z0-9 -/:-@\[-~]+$/.test(rt_text)) {
                 const rt_height = rt_text.length;
                 const rb_height = rb_text.length * 2;
                 if (rt_height >= 2 && rt_text.length === rb_text.length) {
-                    if (rt_text.match(/^・+$/)) {
+                    if (/^・+$/.test(rt_text)) {
                         item.setAttribute("rt-emphasis", "");
-                        styles["--rt-letter-spacing"] = `1.5em`;
-                        styles["--rt-margin-top"] = `0.525em`;
-                        styles["--rt-margin-bottom"] = "-0.25em";
                         item.setAttribute("data-ruby", rt_text.replace(/・/g, "﹅"));
+                        setRubyStyle(item.style, 1.5, 0.525, -0.25);
                     } else {
                         item.setAttribute("rt-spacing", "");
-                        styles["--rt-letter-spacing"] = `1em`;
-                        styles["--rt-margin-top"] = `0.5em`;
-                        styles["--rt-margin-bottom"] = "0em";
+                        setRubyStyle(item.style, 1, 0.5, 0);
                     }
                 } else if (rt_height > 2 && rt_height < rb_height) {
                     const sp = (rb_height - rt_height) / rt_height;
                     item.setAttribute("rt-spacing", "");
-                    styles["--rt-letter-spacing"] = `${sp}em`;
-                    styles["--rt-margin-top"] = `${sp / 2}em`;
-                    styles["--rt-margin-bottom"] = "0em";
+                    setRubyStyle(item.style, sp, sp / 2, 0);
                 } else if (rt_height === 2 && rt_height < rb_height) {
                     const sp = (rb_height / 2);
                     item.setAttribute("rt-spacing", "");
-                    styles["--rt-letter-spacing"] = `${sp}em`;
-                    styles["--rt-margin-top"] = `0em`;
-                    styles["--rt-margin-bottom"] = `-${sp / 2}em`;
+                    setRubyStyle(item.style, sp, 0, sp / 2);
                 } else if (rt_height > rb_height) {
                     const sp = (rt_height - rb_height) / (rb_height / 2 + 1) / 2;
-                    styles["letter-spacing"] = `${sp * 2}em`;
-                    styles["margin-top"] = `${sp}em`;
-                    styles["margin-bottom"] = `-${sp}em`;
                     item.setAttribute("rt-spacing", "");
-                    styles["--rt-letter-spacing"] = `0em`;
-                    styles["--rt-margin-top"] = `-${sp}em`;
-                    styles["--rt-margin-bottom"] = `${sp / 2}em`;
+                    item.style.setProperty("letter-spacing", `${sp * 2}em`);
+                    item.style.setProperty("margin-top", `${sp}em`);
+                    item.style.setProperty("margin-bottom", `-${sp}em`);
+                    setRubyStyle(item.style, 0, sp, sp / 2);
                 } else if (rt_height === 1 && rt_text.length === rb_text.length) {
-                    if (rt_text.match(/^・+$/)) {
+                    if (/^・+$/.test(rt_text)) {
                         item.setAttribute("rt-emphasis", "");
                         item.setAttribute("data-ruby", rt_text.replace(/・/g, "﹅"));
                     }
                 }
             }
-
-            Object.keys(styles).forEach(key => {
-                item.style.setProperty(key, styles[key]);
-            });
         }
     }
 };
@@ -400,7 +391,7 @@ const counterJapaneseHyphenation = (doc: Document): void => {
             nextMoveNode = nextNode;
         }
 
-        if (previousText.length === 0 && el.className === "tatechuyoko" && el.innerText.match(/[‼‼︎！？⁈⁇⁉\!\?]/)) {
+        if (previousText.length === 0 && el.className === "tatechuyoko" && /[‼‼︎！？⁈⁇⁉\!\?]/.test(el.innerText)) {
             if (previousNode?.nodeType === Node.TEXT_NODE && (m = (previousNode.nodeValue || "").match(/((?:[\(\[（｛〔〈《「『【〘〖〝‘“｟«]+|.)[,\)\]｝、）〕〉》」』】〙〗〟’”．，｠»ゝゞーァィゥェォッャュョヮヵヶぁぃぅぇぉっゃゅょゎゕゖㇰㇱㇲㇳㇴㇵㇶㇷㇸㇹㇷ゚ㇺㇻㇼㇽㇾㇿ々セ\-\‐゠–〜～\?!‼⁇⁈⁉・:;\/。.]*$)/))) {
                 previousText = m[1];
                 previousNode.nodeValue = (previousNode.nodeValue || "").slice(0, -previousText.length);
@@ -425,19 +416,17 @@ const counterJapaneseHyphenation = (doc: Document): void => {
 };
 
 const convertElementsURL = (doc: Document, url: string): void => {
-    Array.from(doc.getElementsByTagName("A")).forEach(el => {
-        const el_a = el as HTMLAnchorElement;
-        const href = el_a.getAttribute("href");
-        if (href && href.match(/javascript:/i)) {
+    doc.querySelectorAll<HTMLAnchorElement>('a[href]').forEach(el_a => {
+        const href = el_a.getAttribute("href") || "";
+        if (/javascript:/i.test(href)) {
             el_a.style.display = "none";
-        } else if (href && !href.match(/^http/) && !href.match(/^#/)) {
+        } else if (!/^https?:\/\/|^#/.test(href)) {
             el_a.href = convertAbsoluteURL(url, href);
         }
     });
-    Array.from(doc.getElementsByTagName("IMG")).forEach(el => {
-        const el_img = el as HTMLImageElement;
-        const src = el_img.getAttribute("src");
-        if (src && !src.match(/^(?:http|data:image)/)) {
+    doc.querySelectorAll<HTMLImageElement>('img[src]').forEach(el_img => {
+        const src = el_img.getAttribute("src") || "";
+        if (!/^(?:https?:|data:image)/i.test(src)) {
             el_img.src = convertAbsoluteURL(url, src);
         }
         el_img.removeAttribute("width");
@@ -454,7 +443,7 @@ export class TxtMiruLib {
         convertElementsURL(doc, url);
 
         Array.from(doc.getElementsByTagName("P")).forEach(el_p => {
-            if (el_p.innerHTML.match(/^[ 　―\-]+$/) && el_p.innerHTML.match(/[―\-]/)) {
+            if (/^(?=[―\-])[ 　―\-]+$/.test(el_p.innerHTML)) {
                 el_p.innerHTML = "<hr>";
             }
         });
@@ -475,16 +464,6 @@ export class TxtMiruLib {
         return parser.parseFromString(sanitizedHtml, "text/html");
     }
 
-    static LoadScript = (src: string): Promise<HTMLScriptElement> => {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = () => resolve(script);
-            script.onerror = () => reject(new Error("Script load error: " + src));
-            document.head.append(script);
-        });
-    }
-
     static EscapeHtml = (text: string): string => text.replace(/[&'`"<>]/g, (match) => {
         const map: Record<string, string> = {
             '&': '&amp;', "'": '&#x27;', '`': '&#x60;', '"': '&quot;', '<': '&lt;', '>': '&gt;',
@@ -494,7 +473,6 @@ export class TxtMiruLib {
 
     static PreventEverything = (e: Event): void => {
         e.preventDefault();
-        e.stopPropagation();
         e.stopImmediatePropagation();
     }
 }

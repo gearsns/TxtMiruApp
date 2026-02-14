@@ -11,16 +11,18 @@ import { openFavorite } from './TxtMiruFavorite'
 import { TxtMiruLoading } from './TxtMiruLoading'
 import { TxtMiruLib } from './TxtMiruLib'
 import { TxtMiruSiteManager } from './TxtMiruSitePlugin'
-import { cumulativeOffset, retrieveCharactersRects, retrieveCharactersRectsRange } from './dom-tools'
+import { cumulativeOffset, retrieveLinesRects, retrieveLinesRectsRange } from './dom-tools'
 import { sharedStyles } from './style'
 import { TxtMiruMessageBox } from './TxtMiruMessageBox'
+import * as UI_CONTROLS from './constants/ui_controls'
+import * as DB_FILEDS from './constants/db_fileds'
 
 document.adoptedStyleSheets = [...document.adoptedStyleSheets, sharedStyles]
 document.querySelector('#app')!.innerHTML = baseHtml
 const TxtMiruTitle = document.title
 
-const mainElement = document.getElementById("TxtMiruMain")!
-mainElement.innerHTML = `<div id="TxtMiruPageEffect"></div><div class="prev-episode"></div><div id="contents" class="contents"><p style="width:100vw"></p></div><div class="next-episode"></div>`
+const mainElement = document.getElementById(UI_CONTROLS.MAIN)!
+mainElement.innerHTML = `<div id="${UI_CONTROLS.PAGE_EFFECT}"></div><div class="prev-episode"></div><div id="contents" class="contents"><p style="width:100vw"></p></div><div class="next-episode"></div>`
 const contentsElement = document.getElementById("contents")!
 // Initialize
 await db.init()
@@ -33,10 +35,12 @@ let isDisplayPopup = false
 let backgroundAbortController: AbortController | undefined | null
 let set_scroll_pos_state_timer_id = 0
 
+const ReAnchorIndex = /#.*$/
+
 const loader = new TxtMiruLoading()
 //
 const setTxtMiruIndexSite = () => {
-    document.getElementById("txtmiru_current_page_url")!.style.display = "none"
+    document.getElementById(UI_CONTROLS.CUR_PAGE_URL)!.style.display = "none"
     contentsElement.innerHTML = topHtml
     contentsElement.className = "contents"
     for (const el of mainElement.querySelectorAll(".prev-episode, .next-episode")) {
@@ -45,7 +49,7 @@ const setTxtMiruIndexSite = () => {
     const addHistory = (id: string, item: { url: string, scroll_pos: string, name: string }, i: number | string) => {
         const el = document.getElementById(`${id}${i}`)
         if (el) {
-            el.style.display = "list-item"
+            el.classList.remove("hide")
             el.innerHTML = `<a href='${item.url}' id='${id}Anchor${i}'></a>`
             const el_a = document.getElementById(`${id}Anchor${i}`) as HTMLAnchorElement
             el_a.textContent = item.name
@@ -55,7 +59,7 @@ const setTxtMiruIndexSite = () => {
             })
         }
     }
-    const local_history = db.setting["local_history"] as (string | undefined)
+    const local_history = db.setting[DB_FILEDS.LOCAL_HISTORY] as (string | undefined)
     if (local_history) {
         let i = 0
         for (const item of JSON.parse(local_history)) {
@@ -65,81 +69,56 @@ const setTxtMiruIndexSite = () => {
             ++i
             addHistory("TxtMiruTopContentsLocalHistory", item, i)
         }
-        const local_history_index = db.setting["local_history_index"] as ({ url: string, scroll_pos: string, name: string } | undefined)
+        const local_history_index = db.setting[DB_FILEDS.LOCAL_HISTORY_INDEX] as ({ url: string, scroll_pos: string, name: string } | undefined)
         if (local_history_index && local_history_index.name !== "undefined") {
             ++i
             addHistory("TxtMiruTopContentsLocalHistory", local_history_index, "Index")
         }
-        const el = document.getElementById(`TxtMiruTopContentsLocalHistoryList`)
+        const el = document.getElementById(UI_CONTROLS.TOPCONTENTS_LOCALHISTORYLIST)
         if (i > 0 && el) {
-            el.style.display = "block"
+            el.classList.remove("hide")
         }
     }
-    const history = db.setting["history"]
+    const history = db.setting[DB_FILEDS.HISTORY] as (string | undefined)
     if (history) {
         let i = 0
         for (const item of JSON.parse(history)) {
             ++i
             addHistory("TxtMiruTopContentsHistory", item, i)
         }
-        const el = document.getElementById(`TxtMiruTopContentsHistoryList`)
+        const el = document.getElementById(UI_CONTROLS.TOPCONTENTS_HISTORYLIST)
         if (i > 0 && el) {
-            el.style.display = "block"
+            el.classList.remove("hide")
         }
     }
     document.title = TxtMiruTitle
     mainElement.scrollTo(mainElement.scrollWidth, 0)
 }
 const showMenu = (isActive: boolean) => {
-    document.getElementById("btn_show")!.classList.toggle("active", isActive);
-    document.getElementById("control-button-panel")!.classList.toggle("active", isActive);
+    document.getElementById(UI_CONTROLS.SHOW)!.classList.toggle("active", isActive);
+    document.getElementById(UI_CONTROLS.PANEL)!.classList.toggle("active", isActive);
 }
 
-const loadLocalFile = () => {
-    if (isDisplayPopup) { return }
-    showMenu(false)
-    isDisplayPopup = true
-    openLocalFileLoader(
-        () => { isDisplayPopup = false },
-        (url: string, files: TxtMiruItem[]) => {
-            localCacheList.Clear
-            for (const cache of files) {
-                localCacheList.Set(cache)
-            }
-            loadNovel(url)
-        }
-    )
-}
+// 共通のガード・前処理・後処理をまとめる
+const withPopup = (openFunc: (onClose: () => void) => void) => {
+    if (isDisplayPopup) return;
+    showMenu(false);
+    isDisplayPopup = true;
 
-const inputURL = () => {
-    if (isDisplayPopup) { return }
-    showMenu(false)
-    isDisplayPopup = true
-    openInputURL(
-        () => { isDisplayPopup = false },
-        (url: string) => { loadNovel(url) }
-    )
-}
+    const onClose = () => { isDisplayPopup = false };
+    openFunc(onClose);
+};
 
-const showConfig = () => {
-    if (isDisplayPopup) { return }
-    showMenu(false)
-    isDisplayPopup = true
-    openConfig(
-        () => { isDisplayPopup = false },
-        reflectSetting
-    )
-}
-
-const showFavorite = () => {
-    if (isDisplayPopup) { return }
-    showMenu(false)
-    isDisplayPopup = true
-    openFavorite(
-        () => { isDisplayPopup = false },
-        (url: string) => { loadNovel(url) }
-    )
-}
+const loadLocalFile = () => withPopup(onClose => 
+    openLocalFileLoader(onClose, (url: string, files: TxtMiruItem[]) => {
+        localCacheList.Clear();
+        files.forEach(cache => localCacheList.Set(cache));
+        loadNovel(url);
+    })
+);
+const inputURL = () => withPopup(onClose => openInputURL(onClose, loadNovel));
+const showConfig = () => withPopup(onClose => openConfig(onClose, reflectSetting));
+const showFavorite = () => withPopup(onClose => openFavorite(onClose, loadNovel));
 
 const loadNovel = async (url: string | undefined | null = undefined, scroll_pos: number | string = 0, isNoHistory = false) => {
     isPrefetch = false
@@ -147,10 +126,10 @@ const loadNovel = async (url: string | undefined | null = undefined, scroll_pos:
         return
     }
     //
-    const elPageUrl = document.getElementById("txtmiru_current_page_url") as HTMLAnchorElement
-    const elIndexBtn = document.getElementById("btn_index") as HTMLButtonElement
-    const elNextEpisodeBtn = document.getElementById("btn_next_episode") as HTMLButtonElement
-    const elPrevEpisodeBtn = document.getElementById("btn_prev_episode") as HTMLButtonElement
+    const elPageUrl = document.getElementById(UI_CONTROLS.CUR_PAGE_URL) as HTMLAnchorElement
+    const elIndexBtn = document.getElementById(UI_CONTROLS.INDEX) as HTMLButtonElement
+    const elNextEpisodeBtn = document.getElementById(UI_CONTROLS.NEXT_EPISODE) as HTMLButtonElement
+    const elPrevEpisodeBtn = document.getElementById(UI_CONTROLS.PREV_EPISODE) as HTMLButtonElement
     //
     const completeLoading = () => {
         loader.end()
@@ -174,11 +153,10 @@ const loadNovel = async (url: string | undefined | null = undefined, scroll_pos:
     elIndexBtn.disabled = true
     elNextEpisodeBtn.disabled = true
     elPrevEpisodeBtn.disabled = true
-    contentsElement.setAttribute("prev-episode", "")
-    contentsElement.setAttribute("next-episode", "")
-    contentsElement.setAttribute("episode-index", "")
+    const episode_attr_list = ["prev-episode", "next-episode", "episode-index"]
+    episode_attr_list.forEach(n => contentsElement.setAttribute(n, ""))
     SetCacheIcon()
-    if (!url || !url.match(/:/)) {
+    if (!url || !url.includes(':')) {
         setTxtMiruIndexSite()
         const new_url = new URL(window.location.toString())
         new_url.searchParams.delete('url')
@@ -224,22 +202,18 @@ const loadNovel = async (url: string | undefined | null = undefined, scroll_pos:
                 history.pushState({ 'TxtMiru': true }, document.title, new_url)
             }
         }
-        contentsElement.className = `contents ${item["className"]}`
+        contentsElement.className = `contents ${item.className}`
         let html = item.html
         if (html === "undefined") {
             html = `<P>${url}</P><P>ページにつながりませんでした。</P>`
-            setIndexHtml("next-episode")
-            setIndexHtml("prev-episode")
-            setIndexHtml("episode-index")
+            episode_attr_list.forEach(n => setIndexHtml(n as keyof TxtMiruItem))
         }
-        contentsElement.setAttribute("prev-episode", item["prev-episode"] ?? "")
-        contentsElement.setAttribute("next-episode", item["next-episode"] ?? "")
-        contentsElement.setAttribute("episode-index", item["episode-index"] ?? "")
+        episode_attr_list.forEach(n => contentsElement.setAttribute(n, item[n as keyof TxtMiruItem] ?? ""))
         contentsElement.innerHTML = html ?? ""
         for (const el_a of contentsElement.getElementsByTagName("A")) {
             let m = null
             const href = el_a.getAttribute("href")
-            if (href?.match(/^(?:http|https|txtmiru):\/\//i)) {
+            if (href && /^(?:http|https|txtmiru):\/\//i.test(href)) {
                 const site = TxtMiruSiteManager.FindSite(href)
                 if (site) {
                     el_a.addEventListener("click", e => {
@@ -261,9 +235,9 @@ const loadNovel = async (url: string | undefined | null = undefined, scroll_pos:
         for (const key of ["prev", "next"]) {
             for (const el of mainElement.getElementsByClassName(`${key}-episode`)) {
                 if (item[`${key}-episode` as keyof TxtMiruItem]) {
-                    el.innerHTML = `<a href="${item[`${key}-episode` as keyof TxtMiruItem]}" class="${item["className"]}">${item[`${key}-episode-text` as keyof TxtMiruItem]}</a>`
+                    el.innerHTML = `<a href="${item[`${key}-episode` as keyof TxtMiruItem]}" class="${item.className}">${item[`${key}-episode-text` as keyof TxtMiruItem]}</a>`
                 } else if (item["episode-index"]) {
-                    el.innerHTML = `<a href="${item["episode-index"]}" class="${item["className"]}">${item["episode-index-text"]}</a>`
+                    el.innerHTML = `<a href="${item["episode-index"]}" class="${item.className}">${item["episode-index-text"]}</a>`
                 }
             }
         }
@@ -275,30 +249,27 @@ const loadNovel = async (url: string | undefined | null = undefined, scroll_pos:
         }
         if (item["next-episode"]) {
             elNextEpisodeBtn.disabled = false
-            if (!item["nocache"] && !item["cancel"]) {
+            if (!item.nocache && !item.cancel) {
                 isPrefetch = true
             }
         }
         //
-        if (typeof scroll_pos === "string") {
-            if (scroll_pos.match(/^[\-0-9\.]+$/)) {
-                mainElement.scrollTo(mainElement.scrollWidth * parseFloat(scroll_pos), 0)
-            } else {
-                const anchor_name = scroll_pos.replace(/#/, "")
-                const target = document.querySelector(`*[name=${anchor_name}],#${anchor_name}`) as HTMLElement | null
-                scroll_pos = target
-                    ? -mainElement.clientWidth + target.getBoundingClientRect().right + mainElement.scrollLeft
-                    : mainElement.scrollWidth
-                mainElement.scrollTo(scroll_pos, 0)
-            }
-        } else {
-            mainElement.scrollTo(mainElement.scrollWidth * (scroll_pos || 1), 0)
+        const sp = Number(scroll_pos)
+        if (!Number.isNaN(sp)) {
+            mainElement.scrollTo(mainElement.scrollWidth * (sp ?? 1), 0)
+        } else if (typeof scroll_pos === "string") {
+            const anchor_name = scroll_pos.replace(/#/, "")
+            const target = document.querySelector(`*[name=${anchor_name}],#${anchor_name}`) as HTMLElement | null
+            scroll_pos = target
+                ? -mainElement.clientWidth + target.getBoundingClientRect().right + mainElement.scrollLeft
+                : mainElement.scrollWidth
+            mainElement.scrollTo(scroll_pos, 0)
         }
-        document.title = item["title"] ?? TxtMiruTitle
+        document.title = item.title ?? TxtMiruTitle
         setHistory(url, document.title)
         setCurrentPage(url, item)
     }
-    const cacheUrl = url.replace(/#.*$/, "")
+    const cacheUrl = url.replace(ReAnchorIndex, "")
     const cache = cacheFiles.Get(cacheUrl)
     if (cache) {
         makeContents(cache)
@@ -310,7 +281,7 @@ const loadNovel = async (url: string | undefined | null = undefined, scroll_pos:
             return
         }
         if (!item?.nocache && !item?.cancel) {
-            item['url'] = cacheUrl
+            item.url = cacheUrl
             cacheFiles.Set(item)
         }
         makeContents(item)
@@ -333,7 +304,7 @@ interface History {
     scroll_pos: number
 }
 const getHistory = (curl_url: string | null): History | null => {
-    const history = db.setting["history"]
+    const history = db.setting[DB_FILEDS.HISTORY]
     return (history)
         ? (JSON.parse(history) as [{ url: string }]).find(item => item.url === curl_url) as History ?? null
         : null
@@ -361,12 +332,12 @@ const setHistory = (check_url: string | null, title: string) => {
     let r
     if (r = check_url.match(/^(txtmiru:\/\/localfile\/[a-z0-9\-]+)/i)) {
         if (r[1] === check_url) {
-            db.setting["local_history_index"] = { url: check_url, name: title }
+            db.setting[DB_FILEDS.LOCAL_HISTORY_INDEX] = { url: check_url, name: title }
         }
-        _sethistory("local_history")
+        _sethistory(DB_FILEDS.LOCAL_HISTORY)
     } else {
-        _sethistory("history")
-        db.setSetting([{ id: "history", value: db.setting["history"] }])
+        _sethistory(DB_FILEDS.HISTORY)
+        db.setSetting([{ id: DB_FILEDS.HISTORY, value: db.setting[DB_FILEDS.HISTORY] }])
     }
 }
 //
@@ -375,9 +346,9 @@ const CacheLoad = async () => {
     if (loader.isLoading || backgroundAbortController || !url) {
         return
     }
-    url = url.replace(/#.*$/, "")
+    url = url.replace(ReAnchorIndex, "")
     if (!cacheFiles.Get(url)) {
-        const next_btn = document.getElementById("btn_next_episode") as HTMLButtonElement
+        const next_btn = document.getElementById(UI_CONTROLS.NEXT_EPISODE) as HTMLButtonElement
         if (!next_btn.disabled) {
             next_btn.classList.remove("cached")
             next_btn.classList.add("loading")
@@ -391,8 +362,8 @@ const CacheLoad = async () => {
                     next_btn.classList.remove("loading")
                     return
                 }
-                if (!item["nocache"] && !item["cancel"]) {
-                    item['url'] = url
+                if (!item.nocache && !item.cancel) {
+                    item.url = url
                     cacheFiles.Set(item)
                 }
             }).catch(_ => {
@@ -404,11 +375,10 @@ const CacheLoad = async () => {
     }
 }
 const SetCacheIcon = () => {
-    const next_btn = document.getElementById("btn_next_episode") as HTMLElement
-    let url = contentsElement.getAttribute("next-episode")
+    const next_btn = document.getElementById(UI_CONTROLS.NEXT_EPISODE) as HTMLElement
+    const url = contentsElement.getAttribute("next-episode")
     if (url) {
-        url = url.replace(/#.*$/, "")
-        if (cacheFiles.Get(url)) {
+        if (cacheFiles.Get(url.replace(ReAnchorIndex, ""))) {
             next_btn.classList.add("cached")
             next_btn.classList.remove("loading")
             return
@@ -424,13 +394,15 @@ const setCurrentPage = async (url: string, item: TxtMiruItem) => {
     }
     const site = TxtMiruSiteManager.FindSite(url)
     if (site) {
-        const page = await site.GetPageNo({}, url)
-        if (page && page.index_url) {
-            const item = await db.getFavoriteByUrl(page.index_url, page.page_no, url)
-            if (item && item.length > 0 && item[0].cur_page < page.page_no) {
-                await db.setFavorite(item[0].id, { cur_page: page.page_no, cur_url: url })
+        try {
+            const page = await site.GetPageNo({}, url)
+            if (page && page.index_url) {
+                const item = await db.getFavoriteByUrl(page.index_url, page.page_no, url)
+                if (item && item.length > 0 && item[0].cur_page < page.page_no) {
+                    await db.setFavorite(item[0].id, { cur_page: page.page_no, cur_url: url })
+                }
             }
-        }
+        } catch { }
     }
 }
 // Scroll
@@ -440,7 +412,7 @@ const setScrollPosState = () => {
     setHistory(cur_url.searchParams.get("url"), document.title)
 }
 const scrollPageEffect = (nextDir: boolean) => {
-    const el_effect = document.getElementById("TxtMiruPageEffect") as HTMLElement
+    const el_effect = document.getElementById(UI_CONTROLS.PAGE_EFFECT) as HTMLElement
     el_effect.style.display = "none"
     const el = mainElement
     let maxCount = window.innerWidth
@@ -473,34 +445,29 @@ const scrollPageEffect = (nextDir: boolean) => {
         for (let item of targets) {
             let check_right = right
             if (item.tagName === "RT") {
-                for (const ch of retrieveCharactersRects(item)) {
-                    const item_right = ch.rect.right
-                    if (ch.rect.left < right && right < item_right) {
-                        check_right += ch.rect.left
+                for (const ch of retrieveLinesRects(item)) {
+                    if (ch.x < right && right < ch.x + ch.width) {
+                        check_right += ch.x
                         break
                     }
                 }
             }
-            const ruby_tags = ["RT", "RB", "RUBY"];
-            while (ruby_tags.includes(item.tagName)) {
-                item = item.parentNode as HTMLElement
+            const rubyParent = item.closest('ruby, rt, rb')
+            if (rubyParent) {
+                item = rubyParent as HTMLElement
             }
-            for (const ch of retrieveCharactersRectsRange(item, 0, 30)) {
-                if (ch.rect.left < check_right && check_right < ch.rect.right) {
-                    const item_right = ch.rect.right + ch.rect.width / 5 - right //2.3
-                    if (offset < item_right) {
-                        offset = item_right
-                    }
+            for (const ch of retrieveLinesRectsRange(item, 0, 30)) {
+                if (ch.x < check_right && check_right < ch.x + ch.width) {
+                    const item_right = ch.x + ch.width + ch.width / 2.3 - right //2.3
+                    offset = Math.max(offset, item_right)
                 }
             }
         }
-        maxCount -= right
-        maxCount -= offset
-        maxCount *= -1
+        maxCount = right + offset - maxCount
     }
     //
     if (Math.abs(maxCount) > 1) {
-        if (db.setting["page-scroll-effect-animation"]) {
+        if (db.setting[DB_FILEDS.PAGE_SCROLL_EFFECT_ANIMATION]) {
             el_effect.style.display = "block"
             el_effect.className = el_effect.className === 'fadeInAnime1' ? 'fadeInAnime2' : 'fadeInAnime1'
         }
@@ -585,7 +552,7 @@ const bindEvent = () => {
     })
     // Mouse
     mainElement.addEventListener("click", e => {
-        const r = db.setting["tap-scroll-next-per"] || 0
+        const r = db.setting[DB_FILEDS.TAP_SCROLL_NEXT_PER] || 0
         if (r && e.clientX < mainElement.clientWidth * (r / 100)) {
             const target = e.target as HTMLElement
             if (target?.tagName === "A" || target?.classList?.contains("next-episode")) {
@@ -599,10 +566,10 @@ const bindEvent = () => {
         if (set_scroll_pos_state_timer_id) {
             clearTimeout(set_scroll_pos_state_timer_id)
         }
-        if (db.setting["delay-set-scroll-pos-state"] >= 0) {
-            set_scroll_pos_state_timer_id = setTimeout(setScrollPosState, db.setting["delay-set-scroll-pos-state"])
+        if (db.setting[DB_FILEDS.DELAY_SET_SCROLL_POS_STATE] >= 0) {
+            set_scroll_pos_state_timer_id = setTimeout(setScrollPosState, db.setting[DB_FILEDS.DELAY_SET_SCROLL_POS_STATE])
         }
-        if (isPrefetch && db.setting["page-prefetch"]) {
+        if (isPrefetch && db.setting[DB_FILEDS.PAGE_PREFETCH]) {
             const scroll_pos = - mainElement.scrollLeft / (mainElement.scrollWidth - mainElement.clientWidth)
             if (scroll_pos > 0.2) {
                 CacheLoad()
@@ -638,28 +605,27 @@ const bindEvent = () => {
     }
     window.addEventListener("load", _loadNovel)
     window.addEventListener("popstate", _loadNovel)
-    const el_effect = document.getElementById("TxtMiruPageEffect")!
+    const el_effect = document.getElementById(UI_CONTROLS.PAGE_EFFECT)!
     el_effect.addEventListener("animationend", _ => { el_effect.style.display = "none" })
     //
-    window.addEventListener('beforeunload', setScrollPosState)
-    window.addEventListener('unload', setScrollPosState)
+    window.addEventListener('visibilitychange', setScrollPosState)
     // Menu
-    document.getElementById("btn_show")!.addEventListener("click", e => {
-        showMenu(!document.getElementById("control-button-panel")!.classList.contains("active"))
+    document.getElementById(UI_CONTROLS.SHOW)!.addEventListener("click", e => {
+        showMenu(!document.getElementById(UI_CONTROLS.PANEL)!.classList.contains("active"))
     })
-    document.getElementById("btn_favorite")!.addEventListener("click", e => showFavorite())
-    document.getElementById("btn_config")!.addEventListener("click", e => showConfig())
-    document.getElementById("btn_oepn")!.addEventListener("click", loadLocalFile)
-    document.getElementById("btn_url")!.addEventListener("click", e => inputURL())
-    document.getElementById("control-button-panel")!.addEventListener("click", () => showMenu(false))
-    document.getElementById("btn_first")!.addEventListener("click", pageTop)
-    document.getElementById("btn_prev")!.addEventListener("click", pagePrev)
-    document.getElementById("btn_index")!.addEventListener("click", gotoIndex)
-    document.getElementById("btn_next")!.addEventListener("click", pageNext)
-    document.getElementById("btn_end")!.addEventListener("click", pageEnd)
-    document.getElementById("btn_next_episode")!.addEventListener("click", gotoNextEpisode)
-    document.getElementById("btn_prev_episode")!.addEventListener("click", gotoPrevEpisodeOrIndex)
-    document.getElementById("txtmiru_top_page")!.addEventListener("click", e => {
+    document.getElementById(UI_CONTROLS.FAVORITE)!.addEventListener("click", e => showFavorite())
+    document.getElementById(UI_CONTROLS.CONFIG)!.addEventListener("click", e => showConfig())
+    document.getElementById(UI_CONTROLS.OPEN)!.addEventListener("click", loadLocalFile)
+    document.getElementById(UI_CONTROLS.URL)!.addEventListener("click", e => inputURL())
+    document.getElementById(UI_CONTROLS.PANEL)!.addEventListener("click", () => showMenu(false))
+    document.getElementById(UI_CONTROLS.FIRST)!.addEventListener("click", pageTop)
+    document.getElementById(UI_CONTROLS.PREV)!.addEventListener("click", pagePrev)
+    document.getElementById(UI_CONTROLS.INDEX)!.addEventListener("click", gotoIndex)
+    document.getElementById(UI_CONTROLS.NEXT)!.addEventListener("click", pageNext)
+    document.getElementById(UI_CONTROLS.END)!.addEventListener("click", pageEnd)
+    document.getElementById(UI_CONTROLS.NEXT_EPISODE)!.addEventListener("click", gotoNextEpisode)
+    document.getElementById(UI_CONTROLS.PREV_EPISODE)!.addEventListener("click", gotoPrevEpisodeOrIndex)
+    document.getElementById(UI_CONTROLS.TOP_PAGE)!.addEventListener("click", e => {
         TxtMiruLib.PreventEverything(e)
         showMenu(false)
         loadNovel()
@@ -681,8 +647,8 @@ const setupWebsock = (url: string) => {
             try {
                 let item = JSON.parse(e.data) as TxtMiruItem
                 if (item.url) {
-                    const match = item.url.match(/#.*$/)
-                    item.url = item.url.replace(/#.*$/, "")
+                    const match = item.url.match(ReAnchorIndex)
+                    item.url = item.url.replace(ReAnchorIndex, "")
                     localCacheList.Set(item)
                     loadNovel(item.url, match ? match[0] : "", true)
                 } else {
@@ -700,28 +666,28 @@ const setupWebsock = (url: string) => {
     }
 }
 const reflectSetting = () => {
-    const el = document.getElementById("TxtMiruMain")!
+    const el = document.getElementById(UI_CONTROLS.MAIN)!
     el.classList.remove("zoom_p2", "zoom_p1", "zoom_m1", "no_zoom")
     const font_size_map: Record<string, string> = {
         "large-p": "zoom_p2",
         "large": "zoom_p1",
         "small": "zoom_m1",
     }
-    el.classList.add(font_size_map[db.setting["font-size"]] || "no_zoom")
-    db.setting["font-name"]
-        ? document.documentElement.style.setProperty('--contents-font', db.setting["font-name"])
+    el.classList.add(font_size_map[db.setting[DB_FILEDS.FONT_SIZE]] || "no_zoom")
+    db.setting[DB_FILEDS.FONT_NAME]
+        ? document.documentElement.style.setProperty('--contents-font', db.setting[DB_FILEDS.FONT_NAME])
         : document.documentElement.style.removeProperty('--contents-font')
-    document.documentElement.style.setProperty('--font-feature-settings', db.setting["font-feature-settings"] || '"vchw"')
-    document.body.classList.toggle("dark", db.setting["theme"] === "dark")
+    document.documentElement.style.setProperty('--font-feature-settings', db.setting[DB_FILEDS.FONT_FEATURE_SETTINGS] || '"vchw"')
+    document.body.classList.toggle("dark", db.setting[DB_FILEDS.THEME] === "dark")
     const metaThemeColor = document.querySelector('meta[name="theme-color"]') as HTMLElement;
     metaThemeColor?.setAttribute('content', window.getComputedStyle(mainElement).backgroundColor);
-    document.body.classList.toggle("bottom_menu", db.setting["menu-position"] === "bottom")
-    const btn_episode = db.setting["show-episode-button"] !== "true"
-    document.getElementById("btn_prev_episode")!.classList.toggle("hidden", btn_episode)
-    document.getElementById("btn_next_episode")!.classList.toggle("hidden", btn_episode)
-    document.getElementById("btn_index")!.classList.toggle("hidden",
-        db.setting["show-index-button"] !== "true")
-    setupWebsock(db.setting["WebSocketServerUrl"])
+    document.body.classList.toggle("bottom_menu", db.setting[DB_FILEDS.MENU_POSITION] === "bottom")
+    const btn_episode = db.setting[DB_FILEDS.SHOW_EPISODE_BUTTON] !== "true"
+    document.getElementById(UI_CONTROLS.PREV_EPISODE)!.classList.toggle("hidden", btn_episode)
+    document.getElementById(UI_CONTROLS.NEXT_EPISODE)!.classList.toggle("hidden", btn_episode)
+    document.getElementById(UI_CONTROLS.INDEX)!.classList.toggle("hidden",
+        db.setting[DB_FILEDS.SHOW_INDEX_BUTTON] !== "true")
+    setupWebsock(db.setting[DB_FILEDS.WEBSOCKET_SERVERURL])
 }
 // Start
 const Start = () => {

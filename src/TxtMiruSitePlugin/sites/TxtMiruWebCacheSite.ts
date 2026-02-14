@@ -9,7 +9,7 @@ const makeItem = (url: string, text: string) => {
     const forcePager = checkForcePager(doc, item)
     for (const el_a of doc.getElementsByTagName("A") as HTMLCollectionOf<HTMLAnchorElement>) {
         const href = el_a.getAttribute("href") || ""
-        if (!href.match(/^http/)) {
+        if (!/^http/.test(href)) {
             el_a.href = TxtMiruLib.ConvertAbsoluteURL(url, href)
         }
         const classlist = el_a.classList
@@ -28,7 +28,7 @@ const makeItem = (url: string, text: string) => {
 }
 
 export class TxtMiruWebCacheSite extends TxtMiruSitePlugin {
-    Match = (url: string) => url.match(/https:\/\/txtmiru\.web\.cache/) !== null;
+    Match = (url: string) => /https:\/\/txtmiru\.web\.cache/.test(url);
     GetDocument = async (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem> =>
         this.TryFetch(txtMiru, url, {
             charset: "UTF-8"

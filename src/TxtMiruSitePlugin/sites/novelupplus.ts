@@ -1,17 +1,19 @@
-import { TxtMiruSitePlugin, appendSlash, checkForcePager, checkFetchAbortError, setItemEpisodeText, removeSlash, getHtmlDocument } from '../base'
+import { TxtMiruSitePlugin, SitePluginInfo, appendSlash, checkForcePager, checkFetchAbortError, setItemEpisodeText, removeSlash, getHtmlDocument } from '../base'
 import { TxtMiruLib } from '../../TxtMiruLib';
 import { db } from '../../store'
+import * as DB_FILEDS from '../../constants/db_fileds'
 
+const NOVELUPPLUS = "https://novelup.plus/"
 const makeItem = (url: string, text: string) => {
     const doc = TxtMiruLib.HTML2Document(text)
     const item: TxtMiruItem = {
         url: url,
         className: "NovelupPlus",
-        "title": doc.title,
+        title: doc.title,
         "next-episode-text": "次へ",
         "prev-episode-text": "前へ",
         "episode-index-text": "小説投稿サイトノベルアップ＋",
-        "episode-index": "https://novelup.plus/"
+        "episode-index": NOVELUPPLUS
     }
     TxtMiruLib.KumihanMod(url, doc)
     const forcePager = checkForcePager(doc, item)
@@ -22,9 +24,9 @@ const makeItem = (url: string, text: string) => {
         }
     }
     for (const anchor of doc.getElementsByTagName("A") as HTMLCollectionOf<HTMLAnchorElement>) {
-        if (anchor.innerText.match(/次へ/)) {
+        if (anchor.innerText.includes("次へ")) {
             forcePager.setNextEpisode(anchor, item)
-        } else if (anchor.innerText.match(/前へ/)) {
+        } else if (anchor.innerText.includes("前へ")) {
             forcePager.setPrevEpisode(anchor, item)
         }
     }
@@ -48,7 +50,7 @@ const makeItem = (url: string, text: string) => {
     let title = ""
     for (const el_a of doc.getElementsByTagName("A") as HTMLCollectionOf<HTMLAnchorElement>) {
         const href = el_a.getAttribute("href") || ""
-        if (!href.match(/^http/)) {
+        if (!/^http/.test(href)) {
             el_a.href = TxtMiruLib.ConvertAbsoluteURL(url, href)
         }
         if (el_a.getAttribute("data-link-click-action-name") === "WorksEpisodesEpisodeHeaderPreviousEpisode") {
@@ -63,12 +65,12 @@ const makeItem = (url: string, text: string) => {
             el_a.style.display = "none"
         }
     }
-    item["html"] = title + doc.body.innerHTML
+    item.html = title + doc.body.innerHTML
     return item
 }
 
 export class NovelupPlus extends TxtMiruSitePlugin {
-    Match = (url: string): boolean => url.match(/https:\/\/novelup\.plus/) !== null
+    Match = (url: string): boolean => url.startsWith(NOVELUPPLUS)
     GetDocument = (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem | null> | null =>
         this.TryFetch(txtMiru, url, {
             charset: "UTF-8"
@@ -79,22 +81,21 @@ export class NovelupPlus extends TxtMiruSitePlugin {
                     .then(text => makeItem(url, text))
                     .catch(err => checkFetchAbortError(err, url))
         )
-    GetInfo = async (txtMiru: TxtMiru, url: string | string[], callback: ((urls: string[]) => void) | null = null): Promise<any> => {
-        if (Array.isArray(url)) {
-            return await this.GetArrayInfo(txtMiru, url, callback)
-        } else if (this.Match(url)) {
-            callback?.([url])
-            url = appendSlash(url)
-            const m_index_url = url.match(/(https:\/\/novelup\.plus\/story\/.*?)\//)
+    GetInfo = async (txtMiru: TxtMiru, urls: string | string[], callback: ((urls: string[]) => void) | null = null): Promise<SitePluginInfo[] | null> => {
+        const results: SitePluginInfo[] = [];
+        for (const url of (Array.isArray(urls) ? urls : [urls])) {
+            if (!this.Match(url)) { continue; }
+            const m_index_url = appendSlash(url).match(/(https:\/\/novelup\.plus\/story\/.*?)\//)
             if (!m_index_url) {
-                return null
+                continue
             }
+            callback?.([url])
             const index_url = m_index_url[1]
-            const req_url = `${db.setting["WebServerUrl"]}?${new URLSearchParams({
+            const req_url = `${db.setting[DB_FILEDS.WEBSERVERURL]}?${new URLSearchParams({
                 url: `${index_url}`,
                 charset: "UTF-8"
             })}`
-            const doc = await getHtmlDocument(req_url)
+            const doc = await getHtmlDocument(req_url, txtMiru)
             let max_page = 1
             let title = doc.title
             let author = doc.title
@@ -110,14 +111,14 @@ export class NovelupPlus extends TxtMiruSitePlugin {
             for (const e of doc.getElementsByClassName("novel_author") as HTMLCollectionOf<HTMLElement>) {
                 author = e.innerText
             }
-            return {
+            results.push({
                 url: removeSlash(url),
                 max_page: max_page,
                 name: title,
                 author: author
-            }
+            })
         }
-        return null
+        return results
     }
     GetPageNo = async (txtMiru: TxtMiru, url: string): Promise<{ url: string, page_no: number, index_url: string } | null> => {
         if (this.Match(url)) {
@@ -130,11 +131,11 @@ export class NovelupPlus extends TxtMiruSitePlugin {
                 let url_page = 1
                 while (true) {
                     let bMatchUrl = false
-                    const req_url = `${db.setting["WebServerUrl"]}?${new URLSearchParams({
+                    const req_url = `${db.setting[DB_FILEDS.WEBSERVERURL]}?${new URLSearchParams({
                         url: url_page === 1 ? `${index_url}` : `${index_url}?p=${url_page}`,
                         charset: "UTF-8"
                     })}`
-                    const doc = await getHtmlDocument(req_url)
+                    const doc = await getHtmlDocument(req_url, txtMiru)
                     for (const anchor of doc.querySelectorAll(".episodeListItem > a:first-of-type") as NodeListOf<HTMLAnchorElement>) {
                         ++page_no
                         if (anchor.href.includes(page_url)) {
