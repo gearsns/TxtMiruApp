@@ -161,7 +161,7 @@ export const parseHtml = (url: string, index_url: string, html: string, class_na
 };
 
 export const getHtmlDocument = async (url: string, txtMiru: TxtMiru): Promise<Document> => {
-    const html = await fetch(url, getFetchOption(txtMiru)).then(response => response.text());
+    const html = await fetch(url, getFetchOption(txtMiru)).then(TxtMiruLib.ValidateTextResponse);
     const parser = new DOMParser();
     return parser.parseFromString(html, "text/html");
 };

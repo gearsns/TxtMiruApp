@@ -14,7 +14,7 @@ export class Akatsuki extends TxtMiruSitePlugin {
         },
             async (fetchOpt: RequestInit, req_url: string): Promise<TxtMiruItem> =>
                 fetch(req_url, fetchOpt)
-                    .then(response => response.text())
+                    .then(TxtMiruLib.ValidateTextResponse)
                     .then(text => {
                         const doc = TxtMiruLib.HTML2Document(text)
                         const dummy_url = /\.html$/.test(url) ? url : appendSlash(url) + "index.html"

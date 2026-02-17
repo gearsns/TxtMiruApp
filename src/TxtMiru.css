@@ -239,9 +239,9 @@ ruby[data-ruby] rt {
 /**/
 
 .vertical {
+    writing-mode: vertical-rl;
     -webkit-writing-mode: vertical-rl;
     -ms-writing-mode: tb-rl;
-    writing-mode: vertical-rl;
     text-orientation: mixed;
 }
 
@@ -256,19 +256,18 @@ p {
     hanging-punctuation: force-end;
 }
 
-.TxtMiruTop .novel_title {
-    font-size: 1.2em;
-    padding-top: 0.8em;
-    padding-right: 1.2em;
-    padding-left: 1.2em;
+.TxtMiruTop .novel_title,
+.TxtMiruTop .chapter_title {
+    padding: 0.8em 1.2em 0;
+    /* 上 左右 下0 */
     font-weight: bold;
 }
 
+.TxtMiruTop .novel_title {
+    font-size: 1.2em;
+}
+
 .TxtMiruTop .chapter_title {
-    padding-top: 0.8em;
-    padding-right: 1.2em;
-    padding-left: 1.2em;
-    font-weight: bold;
     background: #eeeee2;
 }
 
@@ -322,7 +321,10 @@ p {
     transition: all .4s;
     box-sizing: border-box;
     padding: 6px 12px;
-    border-radius: 2px;
+}
+
+.menu-trigger:hover {
+    background: #e7e7dae3;
 }
 
 .menu-trigger {
@@ -333,49 +335,46 @@ p {
     border: none;
     appearance: none;
     cursor: pointer;
-}
+    border-radius: 2px;
 
-.menu-trigger:hover {
-    background: #e7e7dae3;
-}
+    & span {
+        position: absolute;
+        left: 0;
+        padding: 0;
+        margin-left: 0.5rem;
+        width: calc(100% - 1rem);
+        height: 0.2rem;
+        background: #18b7cd;
+        border-radius: 0.2rem;
 
-.menu-trigger span {
-    position: absolute;
-    left: 0;
-    padding: 0;
-    margin-left: 0.5rem;
-    width: calc(100% - 1rem);
-    height: 0.2rem;
-    background: #18b7cd;
-    border-radius: 0.2rem;
-}
+        &:nth-of-type(1) {
+            top: 0.7rem;
+        }
 
-.menu-trigger span:nth-of-type(1) {
-    top: 0.7rem;
-}
+        &:nth-of-type(2) {
+            top: 1.4rem;
+        }
 
-.menu-trigger span:nth-of-type(2) {
-    top: 1.4rem;
-}
+        &:nth-of-type(3) {
+            bottom: 0.7rem;
+        }
+    }
 
-.menu-trigger span:nth-of-type(3) {
-    bottom: 0.7rem;
-}
+    &.active {
+        transform: rotate(360deg);
 
-.menu-trigger.active {
-    transform: rotate(360deg);
-}
+        & span:nth-of-type(1) {
+            transform: translateY(0.7rem) rotate(-45deg);
+        }
 
-.menu-trigger.active span:nth-of-type(1) {
-    transform: translateY(0.7rem) rotate(-45deg);
-}
+        & span:nth-of-type(2) {
+            transform: translateY(0) rotate(45deg);
+        }
 
-.menu-trigger.active span:nth-of-type(2) {
-    transform: translateY(0) rotate(45deg);
-}
-
-.menu-trigger.active span:nth-of-type(3) {
-    opacity: 0;
+        & span:nth-of-type(3) {
+            opacity: 0;
+        }
+    }
 }
 
 .control {
@@ -388,16 +387,18 @@ p {
     display: none;
 }
 
-.bottom_menu .control {
-    top: calc(100% - 5rem)
-}
+.bottom_menu {
+    & .control {
+        top: calc(100% - 5rem);
+    }
 
-.bottom_menu #contents {
-    padding-top: 2rem;
-}
+    & #contents {
+        padding-top: 2rem;
+    }
 
-.bottom_menu #control-button-panel {
-    top: 0;
+    & #control-button-panel {
+        top: 0;
+    }
 }
 
 #control-button-panel {
@@ -406,30 +407,30 @@ p {
     height: 100%;
     background: rgba(0, 0, 0, 0.6);
 
-    /* 初期状態（隠れている時） */
+    /* アニメーション設定 */
     opacity: 0;
     visibility: hidden;
-    transform: translateX(-400px);
+    translate: -400px 0;
     transition: all 0.6s;
-    /* これでインもアウトも滑らかに */
-}
 
-/* クラスがついている時だけ表示 */
-#control-button-panel.active {
-    opacity: 1;
-    visibility: visible;
-    transform: translateX(0);
-}
+    /* クラスがついている時 */
+    &.active {
+        opacity: 1;
+        visibility: visible;
+        translate: 0 0;
+    }
 
-#control-button-panel div.url {
-    margin-top: 1rem;
-    color: whitesmoke;
-    font-size: 1.5rem;
-    padding: 0.5em;
-}
+    /* 内部要素 */
+    & div.url {
+        margin-top: 1rem;
+        padding: 0.5em;
+        color: whitesmoke;
+        font-size: 1.5rem;
 
-#control-button-panel div.url a {
-    color: white
+        & a {
+            color: white;
+        }
+    }
 }
 
 /* */
@@ -544,15 +545,15 @@ p {
         padding-left: 1.2em;
         font-weight: bold;
         text-align: right;
-    }
 
-    .contents1 a:first-child {
-        text-align: left;
-        display: block;
-    }
+        a:first-child {
+            text-align: left;
+            display: block;
+        }
 
-    .contents1 .chapter_title {
-        margin-right: 1.2em;
+        .chapter_title {
+            margin-right: 1.2em;
+        }
     }
 
     .novel_writername {
@@ -717,50 +718,50 @@ p {
 
     .emphasisDots {
         font-style: normal;
-    }
 
-    .emphasisDots span {
-        position: relative;
-        display: inline-block;
-        line-height: 0.1;
-    }
+        span {
+            position: relative;
+            display: inline-block;
+            line-height: 0.1;
 
-    .emphasisDots span::after {
-        content: "﹅";
-        position: absolute;
-        white-space: nowrap;
-        line-height: 100%;
-        text-align: center;
-        top: -20em;
-        bottom: -20em;
-        letter-spacing: 0em;
-        transform-origin: center right;
-        transform: translate3d(0.95em, 0.125em, 0) scale(0.4);
-    }
-
-    .subtitles li.chapter {
-        margin-top: -2rem;
-        padding: 1rem 1rem 0 1rem;
-        font-weight: bold;
-        padding-top: 0.8em;
-        padding-right: 1.2em;
-        padding-left: 1.2em;
-        font-weight: bold;
-        background: #eeeee2;
+            &::after {
+                content: "﹅";
+                position: absolute;
+                white-space: nowrap;
+                line-height: 100%;
+                text-align: center;
+                top: -20em;
+                bottom: -20em;
+                letter-spacing: 0em;
+                transform-origin: center right;
+                transform: translate3d(0.95em, 0.125em, 0) scale(0.4);
+            }
+        }
     }
 
     .subtitles li {
         list-style-type: none;
-        border-right: 1px solid #ddddd0
-    }
+        border-right: 1px solid #ddddd0;
 
-    .subtitles li a {
-        text-decoration: none !important;
-    }
+        chapter {
+            margin-top: -2rem;
+            padding: 1rem 1rem 0 1rem;
+            font-weight: bold;
+            padding-top: 0.8em;
+            padding-right: 1.2em;
+            padding-left: 1.2em;
+            font-weight: bold;
+            background: #eeeee2;
+        }
 
-    .subtitles li .long_update {
-        text-align: right;
-        display: block;
+        a {
+            text-decoration: none !important;
+        }
+
+        .long_update {
+            text-align: right;
+            display: block;
+        }
     }
 }
 
@@ -1251,38 +1252,40 @@ p {
         display: inline;
     }
 
-    s .episode_list ul {
-        list-style: none;
-        padding-inline-start: unset;
-    }
+    .episode_list {
+        ul {
+            list-style: none;
+            padding-inline-start: unset;
+        }
 
-    .episode_list li {
-        border-left: 1px solid #ddddd0;
-    }
+        li {
+            border-left: 1px solid #ddddd0;
+        }
 
-    .episode_list .chapter {
-        border: none;
-        padding-top: 0.8em;
-        padding-right: 1.2em;
-        padding-left: 1.2em;
-        font-weight: bold;
-        background: #eeeee2;
-    }
+        .chapter {
+            border: none;
+            padding-top: 0.8em;
+            padding-right: 1.2em;
+            padding-left: 1.2em;
+            font-weight: bold;
+            background: #eeeee2;
 
-    .episode_list .chapter cite {
-        font-style: normal;
-    }
+            cite {
+                font-style: normal;
+            }
+        }
 
-    .episode_list .update_date,
-    .episode_list .comment_link,
-    .episode_list p {
-        text-align: right;
-        white-space: normal;
-    }
+        .update_date,
+        .comment_link,
+        p {
+            text-align: right;
+            white-space: normal;
+        }
 
-    .episode_list .comment_link p {
-        float: right;
-        margin-inline-start: 2rem;
+        .comment_link p {
+            float: right;
+            margin-inline-start: 2rem;
+        }
     }
 
     .episode_title h1 {
@@ -1294,12 +1297,12 @@ p {
         font-weight: bold;
     }
 
-    .move_set div {
-        margin-inline-end: 2rem;
-    }
-
     .move_set {
         display: flex;
+
+        div {
+            margin-inline-end: 2rem;
+        }
     }
 }
 

@@ -77,7 +77,7 @@ export class NovelupPlus extends TxtMiruSitePlugin {
         },
             async (fetchOpt: RequestInit, req_url: string) =>
                 fetch(req_url, fetchOpt)
-                    .then(response => response.text())
+                    .then(TxtMiruLib.ValidateTextResponse)
                     .then(text => makeItem(url, text))
                     .catch(err => checkFetchAbortError(err, url))
         )

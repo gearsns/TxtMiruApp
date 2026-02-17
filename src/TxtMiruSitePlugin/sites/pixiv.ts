@@ -24,7 +24,7 @@ const _getNovelData = async (url: string, novel_id: string) => {
     const novel_contents = await fetch(`${db.setting[DB_FILEDS.WEBSERVERURL]}?${new URLSearchParams({
         url: removeSlash(url),
         charset: "UTF-8"
-    })}`).then(response => response.text())
+    })}`).then(TxtMiruLib.ValidateTextResponse)
     const doc = TxtMiruLib.HTML2Document(novel_contents)
     if (doc.getElementsByName('preload-data').length > 0) {
         const meta_content = doc.getElementsByName('preload-data')[0].getAttribute("content") as string
@@ -48,7 +48,7 @@ export class Pixiv extends TxtMiruSitePlugin {
         },
             async (fetchOpt: RequestInit, req_url: string) =>
                 fetch(req_url, fetchOpt)
-                    .then(response => response.text())
+                    .then(TxtMiruLib.ValidateTextResponse)
                     .then(async text => {
                         const item: TxtMiruItem = {
                             url: url,

@@ -109,7 +109,7 @@ const withPopup = (openFunc: (onClose: () => void) => void) => {
     openFunc(onClose);
 };
 
-const loadLocalFile = () => withPopup(onClose => 
+const loadLocalFile = () => withPopup(onClose =>
     openLocalFileLoader(onClose, (url: string, files: TxtMiruItem[]) => {
         localCacheList.Clear();
         files.forEach(cache => localCacheList.Set(cache));
@@ -173,28 +173,22 @@ const loadNovel = async (url: string | undefined | null = undefined, scroll_pos:
                 item[key] = ""
             }
         }
+        const setIndexHtml = (id: keyof TxtMiruItem) => {
+            item[id] = "./index.html"
+            item[`${id}-text` as keyof TxtMiruItem] = TxtMiruTitle
+        }
         const setEpisodeText = <k extends TxtMiruItemBaseKeys>(id: k, text: string) => {
             const id_text = `${id}-text` as keyof TxtMiruItem
             if (item[id_text].length === 0 && item[id].length > 0/*URL*/) {
                 item[id_text] = text
             }
-        }
-        const setIndexHtml = (id: keyof TxtMiruItem) => {
-            item[id] = "./index.html"
-            item[`${id}-text` as keyof TxtMiruItem] = TxtMiruTitle
+            if (item[id_text]?.length === 0 && item["episode-index-text"]?.length === 0) {
+                setIndexHtml(id)
+            }
         }
         setEpisodeText("next-episode", "次へ")
         setEpisodeText("prev-episode", "前へ")
         setEpisodeText("episode-index", "目次へ")
-        if (item["next-episode-text"]?.length === 0 && item["episode-index-text"]?.length === 0) {
-            setIndexHtml("next-episode")
-        }
-        if (item["prev-episode-text"]?.length === 0 && item["episode-index-text"]?.length === 0) {
-            setIndexHtml("prev-episode")
-        }
-        if (item["episode-index-text"]?.length === 0) {
-            setIndexHtml("episode-index")
-        }
         if (!isNoHistory) {
             const new_url = new URL(window.location.toString())
             new_url.searchParams.set('url', url)
@@ -388,7 +382,7 @@ const SetCacheIcon = () => {
     next_btn.classList.remove("loading")
 }
 const setCurrentPage = async (url: string, item: TxtMiruItem) => {
-    if (item["episode-index"] && item["page_no"]) {
+    if (item["episode-index"] && item.page_no) {
         await db.getFavoriteByUrl(item["episode-index"], parseInt(item?.page_no), url)
         return
     }
@@ -685,8 +679,7 @@ const reflectSetting = () => {
     const btn_episode = db.setting[DB_FILEDS.SHOW_EPISODE_BUTTON] !== "true"
     document.getElementById(UI_CONTROLS.PREV_EPISODE)!.classList.toggle("hidden", btn_episode)
     document.getElementById(UI_CONTROLS.NEXT_EPISODE)!.classList.toggle("hidden", btn_episode)
-    document.getElementById(UI_CONTROLS.INDEX)!.classList.toggle("hidden",
-        db.setting[DB_FILEDS.SHOW_INDEX_BUTTON] !== "true")
+    document.getElementById(UI_CONTROLS.INDEX)!.classList.toggle("hidden", db.setting[DB_FILEDS.SHOW_INDEX_BUTTON] !== "true")
     setupWebsock(db.setting[DB_FILEDS.WEBSOCKET_SERVERURL])
 }
 // Start

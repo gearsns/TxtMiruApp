@@ -475,4 +475,13 @@ export class TxtMiruLib {
         e.preventDefault();
         e.stopImmediatePropagation();
     }
+
+    static async ValidateTextResponse(response: Response): Promise<string> {
+        if (response.ok) {
+            return response.text();
+        } else if (response.status === 404) {
+            return "Not Found";
+        }
+        throw new Error(`サーバー側の一時的なエラーです : ${response.status}`);
+    }
 }

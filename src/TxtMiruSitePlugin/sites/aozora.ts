@@ -1,4 +1,5 @@
 import { TxtMiruSitePlugin, parseHtml, checkFetchAbortError, SitePluginInfo, getHtmlDocument } from '../base'
+import { TxtMiruLib } from '../../TxtMiruLib';
 import { CacheFiles } from '../../cache-files';
 import { db } from '../../store'
 import * as DB_FILEDS from '../../constants/db_fileds'
@@ -40,7 +41,7 @@ export class Aozora extends TxtMiruSitePlugin {
             },
                 async (fetchOpt: RequestInit, req_url: string) =>
                     fetch(req_url, fetchOpt)
-                        .then(response => response.text())
+                        .then(TxtMiruLib.ValidateTextResponse)
                         .then(text => {
                             this.#cache.Set({ url: index_url, html: text })
                             return _ParseHtml(url, index_url, text)
