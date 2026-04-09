@@ -1,0 +1,1429 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Serif+JP:wght@400;700&display=swap");
+
+:root {
+    --sat: env(safe-area-inset-top);
+    --sar: env(safe-area-inset-right);
+    --sab: env(safe-area-inset-bottom);
+    --sal: env(safe-area-inset-left);
+    --font-feature-settings: "vchw";
+}
+
+html,
+body {
+    padding: 0;
+    margin: 0;
+    position: absolute;
+    -webkit-text-size-adjust: 100%;
+    font-size: 62.5%;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+:focus {
+    outline: none;
+}
+
+#TxtMiruTopContents {
+    display: none;
+}
+
+main.TxtMiru {
+    position: fixed;
+    margin: 0;
+    height: 100%;
+    width: calc(100% + 1px);
+    background: #f7f6eb;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    /*font*/
+    font-size: 1.8rem;
+    -webkit-font-smoothing: antialiased;
+    -moz-font-smoothing: antialiased;
+    font-smooth: antialiased;
+    font-weight: 400;
+    line-height: 1.6;
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    font-family: "Noto Serif JP", serif;
+    font-display: swap;
+}
+
+main.TxtMiru:focus {
+    outline: none;
+}
+
+main.zoom_p2 {
+    font-size: 2.8rem;
+}
+
+main.zoom_p1 {
+    font-size: 2.2rem;
+}
+
+main.zoom_m1 {
+    font-size: 1.6rem;
+}
+
+#contents {
+    position: relative;
+    display: block;
+    margin: 0;
+    padding: 0;
+    font-size: 1em;
+    -webkit-font-smoothing: antialiased;
+    -moz-font-smoothing: antialiased;
+    font-smooth: antialiased;
+    font-weight: 400;
+    line-height: 1.8;
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    font-family: var(--contents-font, "Noto Serif JP", serif);
+    font-display: swap;
+    height: calc(100% - 8rem);
+    padding-top: 5rem;
+    /* 折り返し設定 */
+    word-break: normal !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-break: strict;
+    hanging-punctuation: allow-end;
+    hyphens: auto;
+}
+
+#contents img {
+    max-height: 100%;
+    width: auto !important;
+}
+
+#contents.contents a,
+a:visited {
+    color: black;
+}
+
+#contents h1 {
+    font-size: 1.5em;
+}
+
+#contents h2 {
+    font-size: 1.2em;
+}
+
+ruby[data-ruby] {
+    position: relative;
+    line-height: 0.1;
+    display: inline-block;
+}
+
+ruby[data-ruby]::after {
+    content: attr(data-ruby);
+    position: absolute;
+    white-space: nowrap;
+    line-height: 100%;
+    text-align: center;
+    top: -20em;
+    bottom: -20em;
+    transform-origin: center right;
+    /* ルビの文字サイズを親文字に対する比率で指定 */
+    transform: translate3d(1em, 0, 0) scale(0.5);
+    /* 100%を越える部分が親文字とルビとのスペースになる。単位は親文字に対する比率 */
+    /*right: 105%;*/
+    /* デバッグ用 */
+    /*background-color: rgba(255, 0, 0, 0.2);*/
+    letter-spacing: 0em;
+}
+
+ruby[rt-spacing]::after {
+    letter-spacing: var(--rt-letter-spacing);
+    margin-top: var(--rt-margin-top);
+    margin-bottom: var(--rt-margin-bottom);
+    /*background-color: rgba(255, 255, 0, 0.2);*/
+}
+
+ruby[rt-emphasis]::after {
+    letter-spacing: var(--rt-letter-spacing);
+    margin-top: var(--rt-margin-top);
+    margin-bottom: var(--rt-margin-bottom);
+    transform: translate3d(1em, 0, 0) scale(0.4);
+}
+
+ruby[data-ruby] rt {
+    display: none;
+}
+
+.prev-episode,
+.next-episode {
+    font-size: 0.8em;
+    height: 100%;
+    background: #18b7cd;
+    padding-top: 5.5vh;
+    padding-bottom: 5.5vh;
+    padding-right: 0.8em;
+    cursor: pointer;
+}
+
+.prev-episode {
+    padding-left: 0.8em;
+    margin-left: 1em;
+    margin-right: -1px;
+}
+
+.next-episode {
+    padding-left: 10vw;
+    min-width: 2rem;
+    width: 10vw;
+    margin-right: 90vw;
+}
+
+.prev-episode a,
+.next-episode a {
+    color: #f3f3f8 !important;
+    text-decoration: none !important;
+    cursor: pointer;
+}
+
+.prev-episode,
+.next-episode {
+    position: relative;
+    background: #18b7cd url(/assets/seigaiha.png);
+    z-index: 1;
+    overflow: hidden;
+}
+
+.prev-episode::after,
+.next-episode::after {
+    content: '';
+    position: absolute;
+    background: linear-gradient(to bottom, #18b7cd 0%, #18b7cd 70%, rgba(24, 184, 205, 0.1) 100%);
+    opacity: 1.0;
+    width: 100vw;
+    height: 105.5vh;
+    left: 0;
+    top: -5.5vh;
+    padding: 0;
+    margin: 0;
+    z-index: -1;
+}
+
+.prev-episode::before,
+.next-episode::before {
+    display: inline-block;
+    position: relative;
+    content: '';
+    background: url(/assets/hishigata.svg);
+    background-size: 100%;
+    background-repeat: no-repeat;
+    opacity: 0.6;
+    width: 1em;
+    height: 1em;
+    padding-bottom: 0.5em;
+}
+
+.next-episode::before {
+    transform: scale(-1, 1);
+}
+
+.txtmiru_pager {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    background-color: darkseagreen;
+    text-decoration: none !important;
+}
+
+/**/
+
+.vertical {
+    writing-mode: vertical-rl;
+    -webkit-writing-mode: vertical-rl;
+    -ms-writing-mode: tb-rl;
+    text-orientation: mixed;
+}
+
+.TxtMiruTop,
+p {
+    margin: 0;
+    line-height: 1.8;
+    text-align: justify;
+    text-justify: inter-ideograph;
+    font-feature-settings: var(--font-feature-settings);
+    line-break: strict;
+    hanging-punctuation: force-end;
+}
+
+.TxtMiruTop .novel_title,
+.TxtMiruTop .chapter_title {
+    padding: 0.8em 1.2em 0;
+    /* 上 左右 下0 */
+    font-weight: bold;
+}
+
+.TxtMiruTop .novel_title {
+    font-size: 1.2em;
+}
+
+.TxtMiruTop .chapter_title {
+    background: #eeeee2;
+}
+
+.TxtMiruTop .novel_sublist {
+    border-left: 1px solid #ddddd0;
+}
+
+.TxtMiruTop table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+.TxtMiruTop table td,
+.TxtMiruTop table th {
+    border: 1px solid #ddddd0;
+    padding: 6px 13px;
+}
+
+.TxtMiruTop a {
+    text-decoration: none !important;
+}
+
+.vertical .tatechuyoko_top {
+    display: inline-block;
+}
+
+.vertical .tatechuyoko {
+    -webkit-text-combine: horizontal;
+    -ms-text-combine-horizontal: all;
+    text-combine-upright: all;
+}
+
+.vertical .yakumono_spacing {
+    letter-spacing: -0.5em;
+}
+
+.vertical a {
+    text-decoration: overline;
+}
+
+.vertical .sideways_date {
+    writing-mode: sideways-rl;
+    --webkit-writing-mode: sideways-rl;
+}
+
+/**/
+
+.menu-trigger,
+.menu-trigger span {
+    display: inline-block;
+    transition: all .4s;
+    box-sizing: border-box;
+    padding: 6px 12px;
+}
+
+.menu-trigger:hover {
+    background: #e7e7dae3;
+}
+
+.menu-trigger {
+    position: relative;
+    width: 3rem;
+    height: 3rem;
+    background: #e7e7dae3;
+    border: none;
+    appearance: none;
+    cursor: pointer;
+    border-radius: 2px;
+
+    & span {
+        position: absolute;
+        left: 0;
+        padding: 0;
+        margin-left: 0.5rem;
+        width: calc(100% - 1rem);
+        height: 0.2rem;
+        background: #18b7cd;
+        border-radius: 0.2rem;
+
+        &:nth-of-type(1) {
+            top: 0.7rem;
+        }
+
+        &:nth-of-type(2) {
+            top: 1.4rem;
+        }
+
+        &:nth-of-type(3) {
+            bottom: 0.7rem;
+        }
+    }
+
+    &.active {
+        transform: rotate(360deg);
+
+        & span:nth-of-type(1) {
+            transform: translateY(0.7rem) rotate(-45deg);
+        }
+
+        & span:nth-of-type(2) {
+            transform: translateY(0) rotate(45deg);
+        }
+
+        & span:nth-of-type(3) {
+            opacity: 0;
+        }
+    }
+}
+
+.control {
+    top: 0;
+    position: fixed;
+    z-index: 3;
+}
+
+.control .hidden {
+    display: none;
+}
+
+.bottom_menu {
+    & .control {
+        top: calc(100% - 5rem);
+    }
+
+    & #contents {
+        padding-top: 2rem;
+    }
+
+    & #control-button-panel {
+        top: 0;
+    }
+}
+
+#control-button-panel {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+
+    /* アニメーション設定 */
+    opacity: 0;
+    visibility: hidden;
+    translate: -400px 0;
+    transition: all 0.6s;
+
+    /* クラスがついている時 */
+    &.active {
+        opacity: 1;
+        visibility: visible;
+        translate: 0 0;
+    }
+
+    /* 内部要素 */
+    & div.url {
+        margin-top: 1rem;
+        padding: 0.5em;
+        color: whitesmoke;
+        font-size: 1.5rem;
+
+        & a {
+            color: white;
+        }
+    }
+}
+
+/* */
+
+/* 共通のスタイルを一括定義 */
+#btn_next_episode.cached::after,
+#btn_next_episode.loading::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0.5em;
+    height: 0.5em;
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+/* 変化する色だけを個別に指定 */
+#btn_next_episode.cached::after {
+    background-color: rgb(95, 86, 5);
+}
+
+#btn_next_episode.loading::after {
+    background-color: rgb(255, 72, 0);
+}
+
+/**/
+#TxtMiruPageEffect {
+    position: absolute;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+    background-color: #000000;
+    color: white;
+    display: none;
+    z-index: 9999999;
+}
+
+@keyframes fadeOutLight {
+    from {
+        opacity: 0.2;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+#TxtMiruPageEffect.fadeInAnime1,
+#TxtMiruPageEffect.fadeInAnime2 {
+    animation: fadeOutLight 2s forwards;
+    opacity: 0;
+}
+
+.TxtMiruTopContentsHistory .novel_sublist {
+    display: list-item;
+    list-style: cjk-ideographic;
+    margin-top: 2rem;
+}
+
+#TxtMiruTopContentsLocalHistoryList.hide,
+#TxtMiruTopContentsHistoryList.hide,
+.TxtMiruTopContentsHistory .hide {
+    display: none;
+}
+
+.TxtMiruTopContentsHistory .novel_sublist a {
+    text-decoration: none !important;
+}
+
+/**/
+
+.Narou {
+
+    #novel_header,
+    #pageBottom,
+    .box_announce_bookmark,
+    .toaster,
+    .narou_modal,
+    .footerbookmark,
+    #recommend,
+    #footer,
+    .c-announce-box,
+    .c-menu,
+    .c-modal,
+    .c-navigater,
+    .c-toast,
+    .l-footer,
+    .p-novelgood-form,
+    .p-finish-read,
+    .p-novelpoint-form__note,
+    .novel_hyouka,
+    #pageTop,
+    form,
+    .p-new-impression__manage,
+    .p-bookmark-bar,
+    .p-reaction,
+    #impression {
+        display: none;
+    }
+
+    .novel_title {
+        font-size: 1.2em;
+        padding-top: 0.8em;
+        padding-right: 1.2em;
+        padding-left: 1.2em;
+        font-weight: bold;
+    }
+
+    .contents1 {
+        font-size: 1.2em;
+        padding-right: 1.2em;
+        padding-left: 1.2em;
+        font-weight: bold;
+        text-align: right;
+
+        a:first-child {
+            text-align: left;
+            display: block;
+        }
+
+        .chapter_title {
+            margin-right: 1.2em;
+        }
+    }
+
+    .novel_writername {
+        text-align: right;
+        font-weight: bold;
+    }
+
+    .chapter_title {
+        padding-top: 0.8em;
+        padding-right: 1.2em;
+        padding-left: 1.2em;
+        font-weight: bold;
+        background: #eeeee2;
+    }
+
+    #novel_contents .novel_subtitle {
+        padding-right: 0.8em;
+        padding-left: 0.8em;
+        font-weight: bold;
+    }
+
+    dl.novel_sublist2 {
+        border-left: 1px solid #ddddd0;
+    }
+
+    .subtitles li.chapter,
+    .p-eplist__chapter-title {
+        margin-top: -2rem;
+        padding: 1rem 1rem 0 1rem;
+        font-weight: bold;
+        padding-top: 0.8em;
+        padding-right: 1.2em;
+        padding-left: 1.2em;
+        font-weight: bold;
+        background: #eeeee2;
+    }
+
+    .subtitles li,
+    .p-eplist__sublist {
+        list-style-type: none;
+        border-right: 1px solid #ddddd0
+    }
+
+    .subtitles li a,
+    a.p-eplist__subtitle,
+    a:has(h1.title) {
+        text-decoration: none !important;
+    }
+
+    .subtitles li .long_update,
+    .p-eplist__update {
+        text-align: right;
+        display: block;
+    }
+
+    .novel_bn {
+        margin-right: 1.2em;
+    }
+
+    .novel_view {
+        margin-right: 4em;
+    }
+
+    #novel_ex {
+        margin: 0;
+        line-height: 1.8;
+        text-align: justify;
+        text-justify: inter-ideograph;
+        font-feature-settings: var(--font-feature-settings);
+        line-break: strict;
+        hanging-punctuation: force-end;
+    }
+
+    .c-pager__item {
+        margin-bottom: 1rem;
+        background-color: darkseagreen;
+        text-decoration: none;
+    }
+}
+
+/**/
+
+.Kakuyomu {
+
+    .js-viewer-globalheader,
+    #work-ad-regular-header-left,
+    #work-ad-regular-header-right,
+    #work-ad-regular-work-review-left,
+    #work-ad-regular-work-review-right,
+    #work-ad-regular-footer-left,
+    #work-ad-regular-footer-right,
+    #episodeFooter,
+    #displaySetting-modalContainer,
+    #episodeCheer-modalContainer,
+    #workFollow-modalContainer,
+    #userFollow-modalContainer,
+    #author-information-followButton,
+    #globalHeaderPC-logo,
+    #globalHeaderPC-inner,
+    #userProfile-actionButtons,
+    #userFollow-modalContainer,
+    #modal-userBlock,
+    #workFollow,
+    .widget-workReview-reviewMeta,
+    #reviews,
+    #workInformationAside,
+    #like-modalContainer,
+    #signUpBalloon,
+    .contentMain-pagerArrow,
+    #workMeta,
+    .widget-internalLinks,
+    .ui-truncateTextButton-expandButton,
+    .RegularMediaGlobalHeader_regularGlobalHeader__hFOw3,
+    .Button_button__kcHya,
+    .ModelessMessageBox_isRegular__aFp9H {
+        display: none !important;
+    }
+
+    text-align: justify;
+
+    .widget-episodeTitle {
+        padding-right: 0.8em;
+        padding-left: 0.8em;
+        font-weight: bold;
+    }
+
+    #workTitle {
+        font-size: 1.2em;
+        padding-right: 1.2em;
+        padding-left: 1.2em;
+        font-weight: bold;
+    }
+
+    #workAuthor {
+        font-size: 1.2em;
+        text-align: right;
+        font-weight: bold;
+    }
+
+    .kakuyomu_title {
+        font-size: 1.2em;
+        padding-right: 1.2em;
+        padding-left: 1.2em;
+        font-weight: bold;
+    }
+
+    .widget-toc-episode {
+        border-left: 1px solid #ddddd0;
+    }
+
+    .widget-toc-items {
+        list-style: none;
+    }
+
+    .widget-toc-episode-datePublished {
+        display: block;
+        text-align: right;
+        color: black;
+        text-decoration: none;
+        text-orientation: sideways;
+    }
+
+    .emphasisDots {
+        font-style: normal;
+
+        span {
+            position: relative;
+            display: inline-block;
+            line-height: 0.1;
+
+            &::after {
+                content: "﹅";
+                position: absolute;
+                white-space: nowrap;
+                line-height: 100%;
+                text-align: center;
+                top: -20em;
+                bottom: -20em;
+                letter-spacing: 0em;
+                transform-origin: center right;
+                transform: translate3d(0.95em, 0.125em, 0) scale(0.4);
+            }
+        }
+    }
+
+    .subtitles li {
+        list-style-type: none;
+        border-right: 1px solid #ddddd0;
+
+        chapter {
+            margin-top: -2rem;
+            padding: 1rem 1rem 0 1rem;
+            font-weight: bold;
+            padding-top: 0.8em;
+            padding-right: 1.2em;
+            padding-left: 1.2em;
+            font-weight: bold;
+            background: #eeeee2;
+        }
+
+        a {
+            text-decoration: none !important;
+        }
+
+        .long_update {
+            text-align: right;
+            display: block;
+        }
+    }
+}
+
+/**/
+
+.Aozora {
+    .main_text {
+        margin: 0;
+        line-height: 1.8;
+        text-align: justify;
+        text-justify: inter-ideograph;
+        font-feature-settings: var(--font-feature-settings);
+        line-break: strict;
+        hanging-punctuation: force-end;
+        white-space: pre-wrap;
+    }
+
+    table {
+        table-layout: fixed;
+    }
+
+    form {
+        display: none;
+    }
+
+    .midashi_anchor {
+        text-decoration: none;
+    }
+
+    em {
+        font-style: normal;
+    }
+
+    .sesame_dot {
+        -webkit-text-emphasis: filled sesame;
+        text-emphasis: filled sesame;
+    }
+
+    .white_sesame_dot {
+        -webkit-text-emphasis: open sesame;
+        text-emphasis: open sesame;
+    }
+
+    .black_circle {
+        -webkit-text-emphasis: filled circle;
+        text-emphasis: filled circle;
+    }
+
+    .white_circle {
+        -webkit-text-emphasis: open circle;
+        text-emphasis: open circle;
+    }
+
+    .black_up-pointing_triangle {
+        -webkit-text-emphasis: filled triangle;
+        text-emphasis: filled triangle;
+    }
+
+    .white_up-pointing_triangle {
+        -webkit-text-emphasis: open triangle;
+        text-emphasis: open triangle;
+    }
+
+    .bullseye {
+        -webkit-text-emphasis: open double-circle;
+        text-emphasis: open double-circle;
+    }
+
+    .fisheye {
+        -webkit-text-emphasis: filled double-circle;
+        text-emphasis: filled double-circle;
+    }
+
+    .saltire {
+        -webkit-text-emphasis: '×';
+        text-emphasis: '×';
+    }
+
+    .sesame_dot_after {
+        -webkit-text-emphasis: filled sesame;
+        text-emphasis: filled sesame;
+    }
+
+    .white_sesame_dot_after {
+        -webkit-text-emphasis: open sesame;
+        text-emphasis: open sesame;
+    }
+
+    .black_circle_after {
+        -webkit-text-emphasis: filled circle;
+        text-emphasis: filled circle;
+    }
+
+    .white_circle_after {
+        -webkit-text-emphasis: open circle;
+        text-emphasis: open circle;
+    }
+
+    .black_up-pointing_triangle_after {
+        -webkit-text-emphasis: filled triangle;
+        text-emphasis: filled triangle;
+    }
+
+    .white_up-pointing_triangle_after {
+        -webkit-text-emphasis: open triangle;
+        text-emphasis: open triangle;
+    }
+
+    .bullseye_after {
+        -webkit-text-emphasis: open double-circle;
+        text-emphasis: open double-circle;
+    }
+
+    .fisheye_after {
+        -webkit-text-emphasis: filled double-circle;
+        text-emphasis: filled double-circle;
+    }
+
+    .saltire_after {
+        -webkit-text-emphasis: '×';
+        text-emphasis: '×';
+    }
+
+    .jisage {
+        margin-top: var(--jisage);
+    }
+
+    .burasage {
+        margin-top: var(--burasage);
+        text-indent: var(--burasage-turn);
+    }
+
+    .jizume {
+        width: var(--jizume);
+    }
+
+    .chitsuki {
+        text-align: right;
+        margin-bottom: var(--chitsuki);
+    }
+
+    .chitsuki-float {
+        text-align: right;
+        margin-bottom: var(--chitsuki);
+        float: right;
+    }
+
+    .underline_solid {
+        text-decoration: underline;
+    }
+
+    .underline_double {
+        text-decoration: underline;
+        text-decoration-style: double;
+    }
+
+    .underline_dotted {
+        text-decoration: underline;
+        text-decoration-style: dotted;
+    }
+
+    .underline_dashed {
+        text-decoration: underline;
+        text-decoration-style: dashed;
+    }
+
+    .underline_wave {
+        text-decoration: underline;
+        text-decoration-style: wavy;
+    }
+
+    .overline_solid {
+        border-right: solid;
+    }
+
+    .overline_double {
+        border-right: double;
+    }
+
+    .overline_dotted {
+        border-right: dotted;
+    }
+
+    .overline_dashed {
+        border-right: dashed;
+    }
+
+    .overline_wave {
+        padding-top: 3px;
+        background-image: linear-gradient(135deg, transparent 35%, black 50%, transparent 65%), linear-gradient(225deg, transparent 35%, black 50%, transparent 65%);
+        background-size: 10px 5px;
+        background-position: 0px 0%, 5px 0%;
+        background-repeat: repeat-x;
+    }
+
+    .futoji {
+        font-weight: bold;
+    }
+
+    .shatai {
+        font-style: italic;
+        font-family: Times New Roman, "ＭＳ Ｐゴシック";
+    }
+
+    ruby.ruby-under {
+        ruby-position: under;
+    }
+
+    .keigakomi {
+        border: 1px solid #000;
+    }
+
+    .dai1 {
+        font-size: large;
+    }
+
+    .dai2 {
+        font-size: x-large;
+    }
+
+    .dai3,
+    .dai4,
+    .dai5 {
+        font-size: xx-large;
+    }
+
+    .sho1 {
+        font-size: small;
+    }
+
+    .sho2 {
+        font-size: x-small;
+    }
+
+    .sho3,
+    .sho4,
+    .sho5 {
+        font-size: xx-small;
+    }
+
+    .contents1 .chapter_title {
+        margin-bottom: 1.2em;
+    }
+
+    .novel_writername {
+        text-align: right;
+        font-weight: bold;
+    }
+
+    .chapter_title {
+        padding-top: 0.8em;
+        padding-right: 1.2em;
+        padding-left: 1.2em;
+        font-weight: bold;
+        background: #eeeee2;
+    }
+
+    .subtitle a,
+    a:has(h1.title) {
+        text-decoration: none !important;
+    }
+
+    #novel_contents .novel_subtitle {
+        padding-right: 0.8em;
+        padding-left: 0.8em;
+        font-weight: bold;
+    }
+
+    dl.novel_sublist2 {
+        border-left: 1px solid #ddddd0;
+    }
+}
+
+/**/
+
+.Alphapolis {
+
+    .appeal-point,
+    .content-tags,
+    .counter,
+    .head,
+    .latest-episode-comments-form,
+    .like-area,
+    .login-form,
+    .nav,
+    .overlay-close,
+    #login-over-lay-bg,
+    #loading-overlay,
+    #recommend-items {
+        display: none;
+    }
+
+    #contents,
+    #novelBoby {
+        margin: 0;
+        line-height: 1.8;
+        text-align: justify;
+        text-justify: inter-ideograph;
+        font-feature-settings: var(--font-feature-settings);
+        line-break: strict;
+        hanging-punctuation: force-end;
+    }
+
+    h1.title,
+    h2.title {
+        font-size: 1.2em;
+        padding-right: 1.2em;
+        padding-left: 1.2em;
+        font-weight: bold;
+    }
+
+    h2.episode-title {
+        font-size: 1.1em;
+        padding-right: 0.8em;
+        padding-left: 0.8em;
+        font-weight: bold;
+    }
+
+    .author {
+        font-size: 1.2em;
+        text-align: right;
+        font-weight: bold;
+    }
+
+    .episode {
+        border-left: 1px solid #ddddd0;
+    }
+
+    .open-date {
+        display: block;
+        text-align: right;
+    }
+}
+
+/**/
+
+.Akatsuki {
+
+    #contents-inner2>p,
+    a[href*="#"],
+    a[href*="twitter"] {
+        display: none;
+    }
+
+    h1,
+    #LookNovel {
+        font-size: 1.2em;
+        padding-right: 1.2em;
+        padding-left: 1.2em;
+        font-weight: bold;
+        display: block;
+    }
+
+    .body-novel {
+        margin: 0;
+        line-height: 1.8;
+        text-align: justify;
+        text-justify: inter-ideograph;
+        font-feature-settings: var(--font-feature-settings);
+        line-break: strict;
+        hanging-punctuation: force-end;
+    }
+
+    .author {
+        display: block;
+        font-size: 1.2em;
+        text-align: right;
+        font-weight: bold;
+    }
+}
+
+/**/
+
+.TxtMiruCache {
+    p {
+        white-space: pre-wrap;
+        min-width: 1.7em;
+    }
+
+    em {
+        font-style: normal;
+    }
+}
+
+/**/
+
+.TxtMiruCacheWeb {
+    ul.subtitles>li {
+        list-style-type: none
+    }
+
+    ul.subtitles>li.chapter {
+        font-weight: bold;
+    }
+}
+
+/**/
+
+.Pixiv {
+    .title {
+        font-size: 1.2em;
+        padding-right: 1.2em;
+        padding-left: 1.2em;
+        font-weight: bold;
+        display: block;
+    }
+
+    .author {
+        display: block;
+        font-size: 1.2em;
+        text-align: right;
+        font-weight: bold;
+    }
+
+    #contents {
+        margin: 0;
+        line-height: 1.8;
+        text-align: justify;
+        text-justify: inter-ideograph;
+        font-feature-settings: var(--font-feature-settings);
+        line-break: strict;
+        hanging-punctuation: force-end;
+        white-space: pre-wrap;
+    }
+
+    .novel-subtitle {
+        font-size: 1.2em;
+        padding-right: 1.2em;
+        padding-left: 1.2em;
+        font-weight: bold;
+    }
+
+    .novel-toc-episode {
+        border-left: 1px solid #ddddd0;
+    }
+
+    .novel-toc-items {
+        list-style: none;
+    }
+
+    .novel-toc-episode-datePublished {
+        display: block;
+        text-align: right;
+        color: black;
+        text-decoration: none;
+        text-orientation: sideways;
+    }
+
+    .novel-toc-episode a {
+        text-decoration: none !important;
+    }
+}
+
+.NovelupPlus {
+
+    #header,
+    #suggests,
+    #storyEpisodeToolbar,
+    #section_comment,
+    .storyIndexFooter,
+    .goodCount,
+    .commentLink,
+    .content_wrapper,
+    .followButtonContainer,
+    .closeButton,
+    .login,
+    .sub_navi,
+    #alternative_header,
+    .sns_set,
+    .footer-nav,
+    #section_suggest_list,
+    #footer,
+    #story_episode_toolbar,
+    .scroll-top {
+        display: none !important;
+    }
+
+    p {
+        white-space: pre-wrap;
+    }
+
+    .episodeDate,
+    .novel_author p {
+        text-align: right;
+    }
+
+    .episodeDate p {
+        display: inline;
+    }
+
+    .episode_list {
+        ul {
+            list-style: none;
+            padding-inline-start: unset;
+        }
+
+        li {
+            border-left: 1px solid #ddddd0;
+        }
+
+        .chapter {
+            border: none;
+            padding-top: 0.8em;
+            padding-right: 1.2em;
+            padding-left: 1.2em;
+            font-weight: bold;
+            background: #eeeee2;
+
+            cite {
+                font-style: normal;
+            }
+        }
+
+        .update_date,
+        .comment_link,
+        p {
+            text-align: right;
+            white-space: normal;
+        }
+
+        .comment_link p {
+            float: right;
+            margin-inline-start: 2rem;
+        }
+    }
+
+    .episode_title h1 {
+        font-size: 1em;
+    }
+
+    .novel_title {
+        font-size: 1.2em;
+        font-weight: bold;
+    }
+
+    .move_set {
+        display: flex;
+
+        div {
+            margin-inline-end: 2rem;
+        }
+    }
+}
+
+/**/
+
+@media screen and (max-height:600px) {
+    #contents {
+        height: calc(100% - 8rem);
+        padding-top: 5rem;
+        padding-bottom: 1rem;
+    }
+
+    .prev-episode,
+    .next-episode {
+        height: 200%;
+        padding-top: 5rem;
+        padding-bottom: 1rem;
+    }
+
+    .bottom_menu .control {
+        top: calc(100% - 4.5rem)
+    }
+
+    .bottom_menu #contents {
+        padding-top: 2rem;
+    }
+}
+
+@media screen and (max-width:750px),
+(orientation:portrait) {
+    main.TxtMiru {
+        margin: 0;
+        height: 100%;
+        width: 100%;
+    }
+
+    .show-input-url .url {
+        width: 90%;
+    }
+
+    .show-config .config-box-inner,
+    .show-favorite .favorite-box-inner {
+        margin-left: 0;
+        margin-right: 0;
+        height: calc(100% - 80px);
+    }
+}
+
+@media screen and (min-width:900px),
+(orientation:landscape) {
+    .prev-episode {
+        padding-right: calc(env(safe-area-inset-right) + 0.8em);
+    }
+}
+
+@media print {
+    @page {
+        size: A4 landscape;
+        padding: 0;
+        margin: auto;
+    }
+
+    header,
+    .prev-episode,
+    .next-episode,
+    #TxtMiruTopContents {
+        display: none;
+    }
+
+    main.TxtMiru {
+        font-size: 1rem;
+        position: absolute;
+        overflow: visible;
+        width: auto;
+        height: 155mm;
+        padding: 0;
+        margin-top: 10mm;
+    }
+
+    #contents {
+        font-size: 1.5rem;
+        position: relative;
+        overflow: visible;
+        width: auto;
+        height: 155mm;
+        margin: 0;
+        padding: 0;
+        word-break: break-all;
+    }
+
+    main.zoom_p2,
+    main.zoom_p1,
+    main.zoom_m1 {
+        font-size: 1rem;
+        zoom: 1;
+    }
+
+    html,
+    body {
+        zoom: 1;
+        width: 251mm;
+        height: 175mm;
+        padding: 0;
+        margin: 0;
+        position: relative;
+        overflow: visible;
+        -webkit-writing-mode: vertical-rl;
+        -ms-writing-mode: tb-rl;
+        writing-mode: vertical-rl;
+        word-break: break-all;
+    }
+
+    .kaicho,
+    .new-page,
+    .new-mihiraki,
+    .new-block,
+    .page-break {
+        page-break-before: always;
+    }
+
+    a {
+        text-decoration: none !important;
+    }
+}

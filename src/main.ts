@@ -1,21 +1,21 @@
-import './TxtMiru.css'
-import './TxtMiruDark.css'
+import './assets/styles/global.css'
+import './assets/styles/themes/dark.css'
 import baseHtml from './main.html?raw'
 import topHtml from './top.html?raw'
-import { CacheFiles } from './cache-files'
-import { db } from './store'
-import { openLocalFileLoader } from './TxtMiruLocalFile'
-import { openInputURL } from './TxtMiruInputURL'
-import { openConfig } from './TxtMiruConfig'
-import { openFavorite } from './TxtMiruFavorite'
-import { TxtMiruLoading } from './TxtMiruLoading'
-import { TxtMiruLib } from './TxtMiruLib'
-import { TxtMiruSiteManager } from './TxtMiruSitePlugin'
-import { cumulativeOffset, retrieveLinesRects, retrieveLinesRectsRange } from './dom-tools'
-import { sharedStyles } from './style'
-import { TxtMiruMessageBox } from './TxtMiruMessageBox'
+import { cumulativeOffset, retrieveLinesRects, retrieveLinesRectsRange } from './utils/dom-tools'
 import * as UI_CONTROLS from './constants/ui_controls'
 import * as DB_FILEDS from './constants/db_fileds'
+import { openConfig } from './components/Config'
+import { openFavorite } from './components/Favorite'
+import { TxtMiruLoading } from './components/Loading'
+import { TxtMiruMessageBox } from './components/MessageBox'
+import { db } from './core/store'
+import { CacheFiles } from './core/cache/cache-files'
+import { TxtMiruLib } from './core/lib/TxtMiruLib'
+import { TxtMiruSiteManager } from './plugins'
+import { sharedStyles } from './utils/style-helper'
+import { openLocalFileLoader } from './components/LocalFile'
+import { openInputURL } from './components/InputURL'
 
 document.adoptedStyleSheets = [...document.adoptedStyleSheets, sharedStyles]
 document.querySelector('#app')!.innerHTML = baseHtml
@@ -33,7 +33,7 @@ let isPrefetch = false
 let isComposing = false
 let isDisplayPopup = false
 let backgroundAbortController: AbortController | undefined | null
-let set_scroll_pos_state_timer_id = 0
+let setScrollPosStateTimerId: ReturnType<typeof setTimeout> | undefined;
 
 const ReAnchorIndex = /#.*$/
 
@@ -46,33 +46,33 @@ const setTxtMiruIndexSite = () => {
     for (const el of mainElement.querySelectorAll(".prev-episode, .next-episode")) {
         el.innerHTML = `<a href="./index.html">${TxtMiruTitle}</a>`
     }
-    const addHistory = (id: string, item: { url: string, scroll_pos: string, name: string }, i: number | string) => {
+    const addHistory = (id: string, item: { url: string, scrollPos: string, name: string }, i: number | string) => {
         const el = document.getElementById(`${id}${i}`)
         if (el) {
             el.classList.remove("hide")
             el.innerHTML = `<a href='${item.url}' id='${id}Anchor${i}'></a>`
-            const el_a = document.getElementById(`${id}Anchor${i}`) as HTMLAnchorElement
-            el_a.textContent = item.name
-            el_a.addEventListener("click", e => {
+            const elA = document.getElementById(`${id}Anchor${i}`) as HTMLAnchorElement
+            elA.textContent = item.name
+            elA.addEventListener("click", e => {
                 TxtMiruLib.PreventEverything(e)
-                loadNovel(`${item.url}`, parseFloat(item.scroll_pos))
+                loadNovel(`${item.url}`, parseFloat(item.scrollPos))
             })
         }
     }
-    const local_history = db.setting[DB_FILEDS.LOCAL_HISTORY] as (string | undefined)
-    if (local_history) {
+    const localHistory = db.setting[DB_FILEDS.LOCAL_HISTORY] as (string | undefined)
+    if (localHistory) {
         let i = 0
-        for (const item of JSON.parse(local_history)) {
+        for (const item of JSON.parse(localHistory)) {
             if (item.name === "undefined") {
                 continue
             }
             ++i
             addHistory("TxtMiruTopContentsLocalHistory", item, i)
         }
-        const local_history_index = db.setting[DB_FILEDS.LOCAL_HISTORY_INDEX] as ({ url: string, scroll_pos: string, name: string } | undefined)
-        if (local_history_index && local_history_index.name !== "undefined") {
+        const localHistoryIndex = db.setting[DB_FILEDS.LOCAL_HISTORY_INDEX] as ({ url: string, scrollPos: string, name: string } | undefined)
+        if (localHistoryIndex && localHistoryIndex.name !== "undefined") {
             ++i
-            addHistory("TxtMiruTopContentsLocalHistory", local_history_index, "Index")
+            addHistory("TxtMiruTopContentsLocalHistory", localHistoryIndex, "Index")
         }
         const el = document.getElementById(UI_CONTROLS.TOPCONTENTS_LOCALHISTORYLIST)
         if (i > 0 && el) {
@@ -120,7 +120,7 @@ const inputURL = () => withPopup(onClose => openInputURL(onClose, loadNovel));
 const showConfig = () => withPopup(onClose => openConfig(onClose, reflectSetting));
 const showFavorite = () => withPopup(onClose => openFavorite(onClose, loadNovel));
 
-const loadNovel = async (url: string | undefined | null = undefined, scroll_pos: number | string = 0, isNoHistory = false) => {
+const loadNovel = async (url: string | undefined | null = undefined, scrollPos: number | string = 0, isNoHistory = false) => {
     isPrefetch = false
     if (loader.isLoading) {
         return
@@ -144,24 +144,24 @@ const loadNovel = async (url: string | undefined | null = undefined, scroll_pos:
         cache: localCacheList,
     }
 
-    const old_url = new URL(window.location.toString())
+    const oldUrl = new URL(window.location.toString())
     const title = document.title
     if (!isNoHistory) {
-        setHistory(old_url.searchParams.get("url"), title)
+        setHistory(oldUrl.searchParams.get("url"), title)
     }
     elPageUrl.style.display = "inline"
     elIndexBtn.disabled = true
     elNextEpisodeBtn.disabled = true
     elPrevEpisodeBtn.disabled = true
-    const episode_attr_list = ["prev-episode", "next-episode", "episode-index"]
-    episode_attr_list.forEach(n => contentsElement.setAttribute(n, ""))
+    const episodeAttrList = ["prev-episode", "next-episode", "episode-index"]
+    episodeAttrList.forEach(n => contentsElement.setAttribute(n, ""))
     SetCacheIcon()
     if (!url || !url.includes(':')) {
         setTxtMiruIndexSite()
-        const new_url = new URL(window.location.toString())
-        new_url.searchParams.delete('url')
-        if (old_url.href !== new_url.href) {
-            history.pushState({ 'TxtMiru': true }, document.title, new_url)
+        const newUrl = new URL(window.location.toString())
+        newUrl.searchParams.delete('url')
+        if (oldUrl.href !== newUrl.href) {
+            history.pushState({ 'TxtMiru': true }, document.title, newUrl)
         }
         completeLoading()
         return
@@ -178,11 +178,11 @@ const loadNovel = async (url: string | undefined | null = undefined, scroll_pos:
             item[`${id}-text` as keyof TxtMiruItem] = TxtMiruTitle
         }
         const setEpisodeText = <k extends TxtMiruItemBaseKeys>(id: k, text: string) => {
-            const id_text = `${id}-text` as keyof TxtMiruItem
-            if (item[id_text].length === 0 && item[id].length > 0/*URL*/) {
-                item[id_text] = text
+            const idText = `${id}-text` as keyof TxtMiruItem
+            if (item[idText].length === 0 && item[id].length > 0/*URL*/) {
+                item[idText] = text
             }
-            if (item[id_text]?.length === 0 && item["episode-index-text"]?.length === 0) {
+            if (item[idText]?.length === 0 && item["episode-index-text"]?.length === 0) {
                 setIndexHtml(id)
             }
         }
@@ -190,34 +190,34 @@ const loadNovel = async (url: string | undefined | null = undefined, scroll_pos:
         setEpisodeText("prev-episode", "前へ")
         setEpisodeText("episode-index", "目次へ")
         if (!isNoHistory) {
-            const new_url = new URL(window.location.toString())
-            new_url.searchParams.set('url', url)
-            if (old_url.href !== new_url.href) {
-                history.pushState({ 'TxtMiru': true }, document.title, new_url)
+            const newUrl = new URL(window.location.toString())
+            newUrl.searchParams.set('url', url)
+            if (oldUrl.href !== newUrl.href) {
+                history.pushState({ 'TxtMiru': true }, document.title, newUrl)
             }
         }
         contentsElement.className = `contents ${item.className}`
         let html = item.html
         if (html === "undefined") {
             html = `<P>${url}</P><P>ページにつながりませんでした。</P>`
-            episode_attr_list.forEach(n => setIndexHtml(n as keyof TxtMiruItem))
+            episodeAttrList.forEach(n => setIndexHtml(n as keyof TxtMiruItem))
         }
-        episode_attr_list.forEach(n => contentsElement.setAttribute(n, item[n as keyof TxtMiruItem] ?? ""))
+        episodeAttrList.forEach(n => contentsElement.setAttribute(n, item[n as keyof TxtMiruItem] ?? ""))
         contentsElement.innerHTML = html ?? ""
-        for (const el_a of contentsElement.getElementsByTagName("A")) {
+        for (const elA of contentsElement.getElementsByTagName("A")) {
             let m = null
-            const href = el_a.getAttribute("href")
+            const href = elA.getAttribute("href")
             if (href && /^(?:http|https|txtmiru):\/\//i.test(href)) {
                 const site = TxtMiruSiteManager.FindSite(href)
                 if (site) {
-                    el_a.addEventListener("click", e => {
+                    elA.addEventListener("click", e => {
                         TxtMiruLib.PreventEverything(e)
                         loadNovel(`${href}`)
                     })
                 }
             } else if (m = href?.match(/^#(.*)/)) {
                 const name = m[1]
-                el_a.addEventListener("click", e => {
+                elA.addEventListener("click", e => {
                     TxtMiruLib.PreventEverything(e)
                     const target = document.querySelector(`*[name=${name}]`)
                     if (target) {
@@ -248,16 +248,16 @@ const loadNovel = async (url: string | undefined | null = undefined, scroll_pos:
             }
         }
         //
-        const sp = Number(scroll_pos)
+        const sp = Number(scrollPos)
         if (!Number.isNaN(sp)) {
             mainElement.scrollTo(mainElement.scrollWidth * (sp ?? 1), 0)
-        } else if (typeof scroll_pos === "string") {
-            const anchor_name = scroll_pos.replace(/#/, "")
-            const target = document.querySelector(`*[name=${anchor_name}],#${anchor_name}`) as HTMLElement | null
-            scroll_pos = target
+        } else if (typeof scrollPos === "string") {
+            const anchorName = scrollPos.replace(/#/, "")
+            const target = document.querySelector(`*[name=${anchorName}],#${anchorName}`) as HTMLElement | null
+            scrollPos = target
                 ? -mainElement.clientWidth + target.getBoundingClientRect().right + mainElement.scrollLeft
                 : mainElement.scrollWidth
-            mainElement.scrollTo(scroll_pos, 0)
+            mainElement.scrollTo(scrollPos, 0)
         }
         document.title = item.title ?? TxtMiruTitle
         setHistory(url, document.title)
@@ -297,36 +297,36 @@ interface History {
     name: string
     scroll_pos: number
 }
-const getHistory = (curl_url: string | null): History | null => {
+const getHistory = (curUrl: string | null): History | null => {
     const history = db.setting[DB_FILEDS.HISTORY]
     return (history)
-        ? (JSON.parse(history) as [{ url: string }]).find(item => item.url === curl_url) as History ?? null
+        ? (JSON.parse(history) as [{ url: string }]).find(item => item.url === curUrl) as History ?? null
         : null
 }
-const setHistory = (check_url: string | null, title: string) => {
-    if (!check_url) {
+const setHistory = (checkUrl: string | null, title: string) => {
+    if (!checkUrl) {
         return
     }
     const _sethistory = (name: string) => {
-        const scroll_pos = mainElement.scrollLeft / mainElement.scrollWidth
-        let buf_history: History[] = [{ url: check_url, name: title, scroll_pos: scroll_pos }]
+        const scrollPos = mainElement.scrollLeft / mainElement.scrollWidth
+        let bufHistory: History[] = [{ url: checkUrl, name: title, scroll_pos: scrollPos }]
         const history = db.setting[name]
         if (history) {
             for (const item of JSON.parse(history)) {
-                if (item.url !== check_url) {
-                    buf_history.push(item)
+                if (item.url !== checkUrl) {
+                    bufHistory.push(item)
                 }
             }
-            if (buf_history.length > 5) {
-                buf_history.length = 5
+            if (bufHistory.length > 5) {
+                bufHistory.length = 5
             }
         }
-        db.setting[name] = JSON.stringify(buf_history)
+        db.setting[name] = JSON.stringify(bufHistory)
     }
     let r
-    if (r = check_url.match(/^(txtmiru:\/\/localfile\/[a-z0-9\-]+)/i)) {
-        if (r[1] === check_url) {
-            db.setting[DB_FILEDS.LOCAL_HISTORY_INDEX] = { url: check_url, name: title }
+    if (r = checkUrl.match(/^(txtmiru:\/\/localfile\/[a-z0-9\-]+)/i)) {
+        if (r[1] === checkUrl) {
+            db.setting[DB_FILEDS.LOCAL_HISTORY_INDEX] = { url: checkUrl, name: title }
         }
         _sethistory(DB_FILEDS.LOCAL_HISTORY)
     } else {
@@ -342,10 +342,10 @@ const CacheLoad = async () => {
     }
     url = url.replace(ReAnchorIndex, "")
     if (!cacheFiles.Get(url)) {
-        const next_btn = document.getElementById(UI_CONTROLS.NEXT_EPISODE) as HTMLButtonElement
-        if (!next_btn.disabled) {
-            next_btn.classList.remove("cached")
-            next_btn.classList.add("loading")
+        const nextBtn = document.getElementById(UI_CONTROLS.NEXT_EPISODE) as HTMLButtonElement
+        if (!nextBtn.disabled) {
+            nextBtn.classList.remove("cached")
+            nextBtn.classList.add("loading")
             backgroundAbortController = new AbortController()
             const loadding = {
                 cache: localCacheList,
@@ -353,7 +353,7 @@ const CacheLoad = async () => {
             }
             await TxtMiruSiteManager.GetDocument(loadding, url).then(item => {
                 if (item === null) {
-                    next_btn.classList.remove("loading")
+                    nextBtn.classList.remove("loading")
                     return
                 }
                 if (!item.nocache && !item.cancel) {
@@ -369,17 +369,17 @@ const CacheLoad = async () => {
     }
 }
 const SetCacheIcon = () => {
-    const next_btn = document.getElementById(UI_CONTROLS.NEXT_EPISODE) as HTMLElement
+    const nextBtn = document.getElementById(UI_CONTROLS.NEXT_EPISODE) as HTMLElement
     const url = contentsElement.getAttribute("next-episode")
     if (url) {
         if (cacheFiles.Get(url.replace(ReAnchorIndex, ""))) {
-            next_btn.classList.add("cached")
-            next_btn.classList.remove("loading")
+            nextBtn.classList.add("cached")
+            nextBtn.classList.remove("loading")
             return
         }
     }
-    next_btn.classList.remove("cached")
-    next_btn.classList.remove("loading")
+    nextBtn.classList.remove("cached")
+    nextBtn.classList.remove("loading")
 }
 const setCurrentPage = async (url: string, item: TxtMiruItem) => {
     if (item["episode-index"] && item.page_no) {
@@ -401,13 +401,14 @@ const setCurrentPage = async (url: string, item: TxtMiruItem) => {
 }
 // Scroll
 const setScrollPosState = () => {
-    clearTimeout(set_scroll_pos_state_timer_id)
-    const cur_url = new URL(window.location.toString())
-    setHistory(cur_url.searchParams.get("url"), document.title)
+    clearTimeout(setScrollPosStateTimerId);
+    setScrollPosStateTimerId = undefined;
+    const curUrl = new URL(window.location.toString())
+    setHistory(curUrl.searchParams.get("url"), document.title)
 }
 const scrollPageEffect = (nextDir: boolean) => {
-    const el_effect = document.getElementById(UI_CONTROLS.PAGE_EFFECT) as HTMLElement
-    el_effect.style.display = "none"
+    const elEffect = document.getElementById(UI_CONTROLS.PAGE_EFFECT) as HTMLElement
+    elEffect.style.display = "none"
     const el = mainElement
     let maxCount = window.innerWidth
     const right = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--sal"))
@@ -423,7 +424,7 @@ const scrollPageEffect = (nextDir: boolean) => {
     }
     //
     if (nextDir) {
-        const abl_pos = cumulativeOffset(el_effect)
+        const abl_pos = cumulativeOffset(elEffect)
         const targets = new Set<HTMLElement>()
         for (let x = 0; x < 3; x++) {
             for (let i = 0; i < el.clientHeight; i += 10) {
@@ -437,11 +438,11 @@ const scrollPageEffect = (nextDir: boolean) => {
         // rt: ruby-position : over, under underは左側
         let offset = 0
         for (let item of targets) {
-            let check_right = right
+            let checkRight = right
             if (item.tagName === "RT") {
                 for (const ch of retrieveLinesRects(item)) {
                     if (ch.x < right && right < ch.x + ch.width) {
-                        check_right += ch.x
+                        checkRight += ch.x
                         break
                     }
                 }
@@ -451,7 +452,7 @@ const scrollPageEffect = (nextDir: boolean) => {
                 item = rubyParent as HTMLElement
             }
             for (const ch of retrieveLinesRectsRange(item, 0, 30)) {
-                if (ch.x < check_right && check_right < ch.x + ch.width) {
+                if (ch.x < checkRight && checkRight < ch.x + ch.width) {
                     const item_right = ch.x + ch.width + ch.width / 2.3 - right //2.3
                     offset = Math.max(offset, item_right)
                 }
@@ -462,30 +463,30 @@ const scrollPageEffect = (nextDir: boolean) => {
     //
     if (Math.abs(maxCount) > 1) {
         if (db.setting[DB_FILEDS.PAGE_SCROLL_EFFECT_ANIMATION]) {
-            el_effect.style.display = "block"
-            el_effect.className = el_effect.className === 'fadeInAnime1' ? 'fadeInAnime2' : 'fadeInAnime1'
+            elEffect.style.display = "block"
+            elEffect.className = elEffect.className === 'fadeInAnime1' ? 'fadeInAnime2' : 'fadeInAnime1'
         }
-        el_effect.style.left = (el.scrollLeft + maxCount) + "px"
+        elEffect.style.left = (el.scrollLeft + maxCount) + "px"
         el.scrollBy({ left: maxCount, behavior: "smooth" })
     }
 }
-const scrollToAnim = (scroll_last: number) => {
+const scrollToAnim = (scrollLast: number) => {
     const el = mainElement
-    const height = scroll_last - el.scrollLeft
+    const height = scrollLast - el.scrollLeft
     const count = 10
-    const scroll_step = height / count
+    const scrollStep = height / count
     let index = 0
     const loop = () => {
         if (index < count) {
             ++index
-            el.scrollBy({ left: scroll_step })
+            el.scrollBy({ left: scrollStep })
             requestAnimationFrame(loop)
         } else {
-            if ((height < 0 && el.scrollLeft < scroll_last)
-                || (height >= 0 && el.scrollLeft > scroll_last)) {
+            if ((height < 0 && el.scrollLeft < scrollLast)
+                || (height >= 0 && el.scrollLeft > scrollLast)) {
                 return
             }
-            el.scrollTo(scroll_last, 0)
+            el.scrollTo(scrollLast, 0)
         }
     }
     requestAnimationFrame(loop)
@@ -514,7 +515,7 @@ const gotoPrevEpisodeOrIndex = () => {
 const bindEvent = () => {
     // KeyBind
     isComposing = false
-    const key_mapping: Record<string, (e: Event) => void | undefined> = {
+    const keyMapping: Record<string, (e: Event) => void | undefined> = {
         "Shift+Space": pagePrev,
         "Space": pageNext,
         "PageUp": pagePrev,
@@ -537,7 +538,7 @@ const bindEvent = () => {
             if (e.altKey) { code = `Alt+${code}` }
             if (e.metaKey) { code = `Meta+${code}` }
             if (e.ctrlKey) { code = `Ctrl+${code}` }
-            const func = key_mapping[code]
+            const func = keyMapping[code]
             if (func) {
                 TxtMiruLib.PreventEverything(e)
                 func(e)
@@ -557,15 +558,16 @@ const bindEvent = () => {
         }
     })
     mainElement.addEventListener("scroll", e => {
-        if (set_scroll_pos_state_timer_id) {
-            clearTimeout(set_scroll_pos_state_timer_id)
+        if (setScrollPosStateTimerId) {
+            clearTimeout(setScrollPosStateTimerId);
+            setScrollPosStateTimerId = undefined;
         }
         if (db.setting[DB_FILEDS.DELAY_SET_SCROLL_POS_STATE] >= 0) {
-            set_scroll_pos_state_timer_id = setTimeout(setScrollPosState, db.setting[DB_FILEDS.DELAY_SET_SCROLL_POS_STATE])
+            setScrollPosStateTimerId = setTimeout(setScrollPosState, db.setting[DB_FILEDS.DELAY_SET_SCROLL_POS_STATE]);
         }
         if (isPrefetch && db.setting[DB_FILEDS.PAGE_PREFETCH]) {
-            const scroll_pos = - mainElement.scrollLeft / (mainElement.scrollWidth - mainElement.clientWidth)
-            if (scroll_pos > 0.2) {
+            const scrollPos = - mainElement.scrollLeft / (mainElement.scrollWidth - mainElement.clientWidth)
+            if (scrollPos > 0.2) {
                 CacheLoad()
             }
         }
@@ -599,8 +601,8 @@ const bindEvent = () => {
     }
     window.addEventListener("load", _loadNovel)
     window.addEventListener("popstate", _loadNovel)
-    const el_effect = document.getElementById(UI_CONTROLS.PAGE_EFFECT)!
-    el_effect.addEventListener("animationend", _ => { el_effect.style.display = "none" })
+    const elEffect = document.getElementById(UI_CONTROLS.PAGE_EFFECT)!
+    elEffect.addEventListener("animationend", _ => { elEffect.style.display = "none" })
     //
     window.addEventListener('visibilitychange', setScrollPosState)
     // Menu
@@ -626,13 +628,13 @@ const bindEvent = () => {
     })
 }
 //
-let txtmiru_websocket: WebSocket | null = null
+let txtmiruWebsocket: WebSocket | null = null
 const setupWebsock = (url: string) => {
     try {
-        if (txtmiru_websocket) {
-            txtmiru_websocket.close()
+        if (txtmiruWebsocket) {
+            txtmiruWebsocket.close()
         }
-        txtmiru_websocket = null
+        txtmiruWebsocket = null
         if (!url || url.length === 0) {
             return
         }
@@ -650,13 +652,13 @@ const setupWebsock = (url: string) => {
                 }
             } catch { }
         })
-        sock.addEventListener("close", () => txtmiru_websocket = null)
-        txtmiru_websocket = sock
+        sock.addEventListener("close", () => txtmiruWebsocket = null)
+        txtmiruWebsocket = sock
         sock.addEventListener("open", e => {
-            txtmiru_websocket?.send(JSON.stringify({ reload: true }))
+            txtmiruWebsocket?.send(JSON.stringify({ reload: true }))
         })
     } catch {
-        txtmiru_websocket = null
+        txtmiruWebsocket = null
     }
 }
 const reflectSetting = () => {
@@ -676,9 +678,9 @@ const reflectSetting = () => {
     const metaThemeColor = document.querySelector('meta[name="theme-color"]') as HTMLElement;
     metaThemeColor?.setAttribute('content', window.getComputedStyle(mainElement).backgroundColor);
     document.body.classList.toggle("bottom_menu", db.setting[DB_FILEDS.MENU_POSITION] === "bottom")
-    const btn_episode = db.setting[DB_FILEDS.SHOW_EPISODE_BUTTON] !== "true"
-    document.getElementById(UI_CONTROLS.PREV_EPISODE)!.classList.toggle("hidden", btn_episode)
-    document.getElementById(UI_CONTROLS.NEXT_EPISODE)!.classList.toggle("hidden", btn_episode)
+    const btnEpisode = db.setting[DB_FILEDS.SHOW_EPISODE_BUTTON] !== "true"
+    document.getElementById(UI_CONTROLS.PREV_EPISODE)!.classList.toggle("hidden", btnEpisode)
+    document.getElementById(UI_CONTROLS.NEXT_EPISODE)!.classList.toggle("hidden", btnEpisode)
     document.getElementById(UI_CONTROLS.INDEX)!.classList.toggle("hidden", db.setting[DB_FILEDS.SHOW_INDEX_BUTTON] !== "true")
     setupWebsock(db.setting[DB_FILEDS.WEBSOCKET_SERVERURL])
 }
