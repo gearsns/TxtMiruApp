@@ -32,26 +32,22 @@ type CommandTypeItem =
     | { type: "command", text: string; raw?: boolean }
     ;
 
+const getCharLength = (str: string) => {
+    let len = 0;
+    for (const _ of str) len++; // 配列を作らずにサロゲートペアを考慮してカウント
+    return len;
+};
+
 // indexまでの文字列を取得
 const frontTextLength = (arr: CommandTypeItem[], index: number) => {
     let charCount = 0 // サロゲートペアを考慮した文字数
     for (let i = 0; i < index; ++i) {
-        const item = arr[i]
+        const item = arr[i];
         if (item.type === "text") {
             charCount += item.charCount;
         }
     }
     return charCount;
-}
-const frontTextMatch = (arr: CommandTypeItem[], index: number, re: RegExp) => {
-    let text = ""
-    for (let i = 0; i < index; ++i) {
-        const item = arr[i]
-        if (item.type === "text") {
-            text += item.text;
-        }
-    }
-    return text.match(re);
 }
 
 // 青空文庫の追加
@@ -69,7 +65,7 @@ const addCommands = (commands: CommandRecord, start: number, end: number, tag: s
 }
 const addRubyCommands = (commands: CommandRecord, start: number, end: number, startText: string, end_text: string) => {
     end_text = end_text.replace(/^《(.*?)》$/, "$1");
-    end_text = (end_text.match(/［/))
+    end_text = (end_text.includes('［'))
         ? AozoraText2Html(end_text, "contents").replace(/<br \/>$/, '') // ルビに内に青空文庫コマンドがあれば再帰で変換
         : escapeHtml(end_text);
     addCommands(commands, start, end, "ruby", startText, `<rt>${end_text}</rt>`);
@@ -86,45 +82,49 @@ const nestParse = (value: string, commandNestNum: number, lineItem: CommandTypeI
         lineItem.push({ type: "command", text: `${start}「${html}」${end}`, raw: true });
     }
     if (restText.length > 0) {
-        lineItem.push({ type: "text", text: restText, charCount: Array.from(restText).length });
+        lineItem.push({ type: "text", text: restText, charCount: getCharLength(restText) });
     }
 }
 
+const RE_REMOVE_COMMENT = /\-{2,}\n【テキスト中に現れる記号について】\n[\s\S]*?\-{2,}\n/;
+const RE_RETRUN_CODE = /(?:\r\n|\r|\n)/g;
+const RE_ACCENT_REPLACE = / ??〔([A-Za-z0-9\^:_~`'\/&, ]+?)〕 ??/g;
+
 // ルビと青空文庫コマンド対象にテキストと青空文庫コマンドを分割
 const parse = (text: string): CommandTypeItem[][] => {
-    text = text.replace(/(?:\r\n|\r|\n)/g, "\n");
+    text = text.replace(RE_RETRUN_CODE, "\n");
     const ret: CommandTypeItem[][] = [];
     for (const line of text
-        .replace(/\-{2,}\n【テキスト中に現れる記号について】\n[\s\S]*?\-{2,}\n/, '') // コメント削除
-        .split(/(?:\r\n|\r|\n)/)) {
+        .replace(RE_REMOVE_COMMENT, '') // コメント削除
+        .split("\n")) {
         let rubyStartIndex = -1;
         let commandNestNum = 0; // 青空文庫コマンドネスト対応
         const lineItem: CommandTypeItem[] = [];
         for (const value of line
-            .replace(/ ??〔([A-Za-z0-9\^:_~`'\/&, ]+?)〕 ??/g, (_, accent) => accent.replace(RE_ACCENT, (w: string) => accentTable[w] || w)) // アクセント変換
+            .replace(RE_ACCENT_REPLACE, (_, accent) => accent.replace(RE_ACCENT, (w: string) => accentTable[w] || w)) // アクセント変換
             .split(/(｜|《.*?》|［.*?］)/)) {
             if (commandNestNum > 0) {
                 // ネストされた青空文庫コマンドを再帰で変換
-                if ((value.match(/］/) || []).length > (value.match(/［/) || []).length) {
+                if (value.split("］").length > value.split("［").length) {
                     nestParse(value, commandNestNum, lineItem);
                     commandNestNum = 0;
                 } else {
                     lineItem[lineItem.length - 1].text += value; // '］'の数が足りないときは、ネストの閉じ未完了として継続
                 }
-            } else if (value.match(/^［/)) {
+            } else if (value.startsWith("［")) {
                 lineItem.push({ type: "command", text: value });
                 commandNestNum = (value.match(/［/) || []).length - 1; // 青空文庫コマンドネスト対応
-            } else if (value.match(/^《/)) {
+            } else if (value.startsWith("《")) {
                 lineItem.push({ type: "ruby", text: value, start: rubyStartIndex });
                 rubyStartIndex = -1;
-            } else if (value.match(/^｜/)) {
+            } else if (value.startsWith("｜")) {
                 if (rubyStartIndex >= 0) {
                     lineItem[rubyStartIndex].type = "";
                 }
                 rubyStartIndex = lineItem.length;
                 lineItem.push({ type: "ruby_start", text: value });
             } else if (value && value.length > 0) {
-                lineItem.push({ type: "text", text: value, charCount: Array.from(value).length });
+                lineItem.push({ type: "text", text: value, charCount: getCharLength(value) });
             }
         }
         if (rubyStartIndex >= 0) {
@@ -139,7 +139,7 @@ const parse = (text: string): CommandTypeItem[][] => {
 const appendTag = (textArr: string[], commands: CommandRecord, index: number, maxLen: number) => {
     if (commands[index]) {
         commands[index].sort((a, b) => {
-            const tagOrder = (tag: string) => tag.match(/(?:UNICODE CHAR|GAIJI IMAGE)/) ? -2 : (tag.match(/\//) ? -1 : 1)
+            const tagOrder = (tag: string) => tag.match(/(?:UNICODE CHAR|GAIJI IMAGE)/) ? -2 : (tag.includes('/') ? -1 : 1)
             const aT = tagOrder(a.tag);
             const bT = tagOrder(b.tag);
             let r = aT - bT;
@@ -154,7 +154,7 @@ const appendTag = (textArr: string[], commands: CommandRecord, index: number, ma
                 textArr.push(`<image ${command.text}/><br />`);
             } else if (command.tag === "GAIJI IMAGE") {
                 textArr[textArr.length - 1] = `<image ${command.text} />`;
-            } else if (command.tag.match(/\//)) {
+            } else if (command.tag.includes('/')) {
                 textArr.push(`${command.text}<${command.tag}>`);
             } else if ((command as { tag: string; text: string; content: string | boolean; }).content === true) {
                 textArr.push(`<${command.tag} ${command.text}></${command.tag}>`);
@@ -167,14 +167,22 @@ const appendTag = (textArr: string[], commands: CommandRecord, index: number, ma
     }
 }
 
+const closeRangeTag = (commands: CommandRecord, lineItem: CommandTypeItem[], index: number, ctx: { tag: string; attr: string } | null) => {
+    if (ctx) {
+        addCommand(commands, frontTextLength(lineItem, index), `/${ctx.tag}`, "");
+        return true;
+    }
+    return false;
+}
+
 const build = (commandTypeItemList: CommandTypeItem[][], curCommand = "title") => {
     // 青空文庫コマンドの開始位置を計算
-    let jisageOpen = false;
-    let jizumeOpen = false;
+    let jisageContext: { tag: string; attr: string } | null = null;
+    let jizumeContext: { tag: string; attr: string } | null = null;
     const textList = [];
-    for (let line_no = 0; line_no < commandTypeItemList.length; ++line_no) {
-        const lineItem = commandTypeItemList[line_no];
+    for (const lineItem of commandTypeItemList) {
         const appendTags: string[] = [];
+        const appendRestoreContexts: { tag: string; attr: string }[] = [];
         const line = [];
         let r;
         for (let i = 0; i < lineItem.length; ++i) {
@@ -186,136 +194,134 @@ const build = (commandTypeItemList: CommandTypeItem[][], curCommand = "title") =
                 const rp = replaceText[mText];
                 if (rp) {
                     line.push(rp);
-                    lineItem[i] = { type: "text", text: rp, charCount: Array.from(rp).length };
+                    lineItem[i] = { type: "text", text: rp, charCount: getCharLength(rp) };
                 }
             }
         }
         const chrArr = Array.from(line.join(""));
         const chrArrLength = chrArr.length;
         //
+        let currentPos = 0;
+        let currentText = "";
         let preRubyEndIndex = 0;
-        const commands = {};
+        const commands: CommandRecord = {};
         for (let i = 0; i < lineItem.length; ++i) {
             const item = lineItem[i];
             let r: RegExpMatchArray | null;
-            if (item.type === "command") {
+            if (item.type === "text") {
+                currentPos += item.charCount;
+                currentText += item.text;
+            } else if (item.type === "command") {
                 if (r = item.text.match(RE_IMAGE)) {
                     const [_, alt, src] = r;
-                    addCommand(commands, frontTextLength(lineItem, i), "image", `src="./${src}" class="illustration" alt="${item.raw ? alt : escapeHtml(alt)}"`);
+                    addCommand(commands, currentPos, "image", `src="./${src}" class="illustration" alt="${item.raw ? alt : escapeHtml(alt)}"`);
                 } else if (r = item.text.match(/［＃この行(?:(.*)字下げ|(天付き))、折り返して(.*)字下げ］/)) {
                     let number1: string | number = r[1] || r[2];
                     let number2: string | number = r[3];
-                    if (jisageOpen) {
-                        addCommand(commands, frontTextLength(lineItem, i), "/div", "");
+                    if (closeRangeTag(commands, lineItem, i, jisageContext)) {
+                        appendRestoreContexts.push(jisageContext!);
                     }
-                    jisageOpen = true;
                     number1 = number1 === "天付き" ? 0 : toHanNum(number1);
                     number2 = toHanNum(number2);
-                    addCommand(commands, frontTextLength(lineItem, i), "div", `class="burasage" style="line-break:anywhere; --burasage:${number2}em; --burasage-turn:${number1 - number2}em;"`);
+                    addCommand(commands, currentPos, "div", `class="burasage" style="--burasage:${number2}em; --burasage-turn:${number1 - number2}em;"`);
                     appendTags.push("div");
                 } else if (r = item.text.match(/［＃ここから(?:(.*)字下げ|(改行天付き))、折り返して(.*)字下げ］/)) {
+                    closeRangeTag(commands, lineItem, i, jisageContext);
                     let number1: string | number = r[1] || r[2];
                     let number2: string | number = r[3];
-                    if (jisageOpen) {
-                        addCommand(commands, frontTextLength(lineItem, i), "/div", "");
-                    }
-                    jisageOpen = true;
                     number1 = number1 === "改行天付き" ? 0 : toHanNum(number1);
                     number2 = toHanNum(number2);
-                    addCommand(commands, frontTextLength(lineItem, i), "div", `class="burasage" style="--burasage:${number2}em; --burasage-turn:${number1 - number2}em;"`);
-                } else if (r = item.text.match(/［＃ここから(.*)字詰め］/)) {
-                    const number = toHanNum(r[1]);
-                    if (jizumeOpen) {
-                        addCommand(commands, frontTextLength(lineItem, i), "/div", "");
-                    }
-                    jizumeOpen = true;
-                    addCommand(commands, frontTextLength(lineItem, i), "div", `class="jizume" style="--jizume:${number}em"`);
-                } else if (r = item.text.match(/［＃ここから天付き］/)) {
-                    if (jizumeOpen) {
-                        addCommand(commands, frontTextLength(lineItem, i), "/div", "");
-                    }
-                    jizumeOpen = true;
-                    addCommand(commands, frontTextLength(lineItem, i), "div", `class="jizume" style="--jizume:0em"`);
-                } else if (r = item.text.match(/［＃ここから地付き］/)) {
-                    if (jisageOpen) {
-                        addCommand(commands, frontTextLength(lineItem, i), "/div", "");
-                    }
-                    jisageOpen = true;
-                    addCommand(commands, frontTextLength(lineItem, i), "div", `class="chitsuki" style="--chitsuki:0em"`);
+                    const attr = `class="burasage" style="--burasage:${number2}em; --burasage-turn:${number1 - number2}em;"`;
+                    jisageContext = { tag: "div", attr };
+                    addCommand(commands, currentPos, "div", attr);
+                } else if (r = item.text.match(/［＃ここから(?:(.*)字詰め|天付き)］/)) {
+                    closeRangeTag(commands, lineItem, i, jizumeContext);
+                    const number = r[1] ? toHanNum(r[1]) : 0;
+                    const attr = `class="jizume" style="--jizume:${number}em"`;
+                    jizumeContext = { tag: "div", attr };
+                    addCommand(commands, currentPos, "div", attr);
+                } else if (r = item.text.match(/［＃ここから(?:地付き|(?:地から)?(.*)字上げ)］/)) {
+                    closeRangeTag(commands, lineItem, i, jisageContext);
+                    const indent = r[1] ? toHanNum(r[1]) : 0;
+                    const attr = `class="chitsuki" style="--chitsuki:${indent}em"`;
+                    jisageContext = { tag: "div", attr };
+                    addCommand(commands, currentPos, "div", attr);
                 } else if (r = item.text.match(/［＃ここから(.*)字下げ］/)) {
-                    if (jisageOpen) {
-                        addCommand(commands, frontTextLength(lineItem, i), "/div", "");
-                    }
-                    jisageOpen = true;
+                    closeRangeTag(commands, lineItem, i, jisageContext);
                     const number = toHanNum(r[1]);
-                    addCommand(commands, frontTextLength(lineItem, i), "div", `class="jisage" style="--jisage:${number}em"`);
-                } else if (r = item.text.match(/［＃ここから(?:地から)*(.*)字上げ］/)) {
-                    const number = toHanNum(r[1]);
-                    if (jisageOpen) {
-                        addCommand(commands, frontTextLength(lineItem, i), "/div", "");
-                    }
-                    jisageOpen = true;
-                    addCommand(commands, frontTextLength(lineItem, i), "div", `class="chitsuki" style="--chitsuki:${number}em"`);
+                    const attr = `class="jisage" style="--jisage:${number}em"`;
+                    jisageContext = { tag: "div", attr };
+                    addCommand(commands, currentPos, "div", attr);
                 } else if (r = item.text.match(/［＃ここから(.*)］/)) {
                     const command = r[1];
                     let cinfo = commandList[command];
                     if (cinfo) {
-                        addCommand(commands, frontTextLength(lineItem, i), cinfo.blockTag || cinfo.tag, `class="${cinfo.class}"`);
+                        addCommand(commands, currentPos, cinfo.blockTag || cinfo.tag, `class="${cinfo.class}"`);
                     } else if (r = command.match(/(.*)段階(大きな文字|小さな文字)/)) {
                         cinfo = commandList[r[2]];
                         const number = toHanNum(r[1]);
-                        addCommand(commands, frontTextLength(lineItem, i), cinfo.blockTag || cinfo.tag, `class="${cinfo.class}${number}"`);
+                        addCommand(commands, currentPos, cinfo.blockTag || cinfo.tag, `class="${cinfo.class}${number}"`);
                     }
                 } else if (r = item.text.match(/［＃(.*)字下げ］/)) {
+                    if (closeRangeTag(commands, lineItem, i, jisageContext)) {
+                        appendRestoreContexts.push(jisageContext!);
+                    }
                     const number = toHanNum(r[1]);
-                    addCommands(commands, frontTextLength(lineItem, i), chrArrLength, "div", `class="jisage" style="--jisage:${number}em"`, "");
+                    addCommands(commands, currentPos, chrArrLength, "div", `class="jisage" style="--jisage:${number}em"`, "");
                 } else if (r = item.text.match(/［＃(?:地付き|地から(.*)字上げ)］/)) {
+                    if (closeRangeTag(commands, lineItem, i, jisageContext)) {
+                        appendRestoreContexts.push(jisageContext!);
+                    }
                     const number = toHanNum(r[1] || "0");
-                    const start = frontTextLength(lineItem, i);
-                    addCommands(commands, start, chrArrLength, "div", `class="chitsuki${start > 0 ? "-float" : ""}" style="--chitsuki:${number}em"`, "");
+                    const start = currentPos;
+                    const attr = `class="chitsuki${start > 0 ? "-float" : ""}" style="--chitsuki:${number}em"`;
+                    addCommands(commands, start, chrArrLength, "div", attr, "");
                 } else if (item.text.match(/［＃ここで(?:罫囲み|横組み)終わり/)) {
-                    addCommand(commands, frontTextLength(lineItem, i), `/div`, "");
-                } else if (item.text.match(/［＃ここで字詰め終わり/)) {
-                    jizumeOpen = false;
-                    addCommand(commands, frontTextLength(lineItem, i), `/div`, "");
+                    addCommand(commands, currentPos, `/div`, "");
+                } else if (item.text.match(/［＃ここで(?:字下げ|地付き)終わり/)) {
+                    closeRangeTag(commands, lineItem, i, jisageContext);
+                    jisageContext = null;
+                } else if (item.text.match(/［＃ここで(?:字詰め)終わり/)) {
+                    closeRangeTag(commands, lineItem, i, jizumeContext);
+                    jizumeContext = null;
                 } else if (r = item.text.match(/［＃ここで(.*)終わり/)) {
-                    jisageOpen = false;
+                    jisageContext = null;
                     const command = r[1];
                     const cinfo = commandList[command];
-                    addCommand(commands, frontTextLength(lineItem, i)
+                    addCommand(commands, currentPos
                         , cinfo ? `/${cinfo.blockTag || cinfo.tag}` : `/div`
                         , "");
-                } else if (item.text.match(/［＃ここで/)) {
-                    addCommand(commands, frontTextLength(lineItem, i), `/div`, "");
+                } else if (item.text.includes("［＃ここで")) {
+                    addCommand(commands, currentPos, `/div`, "");
                 } else if (r = item.text.match(/「(.*)」(の左)*(?:の|に|は)「ママ」の注記］/)) {
                     const target = r[1];
                     const startText = r[2] ? `class="ruby-under"` : "";
                     const re = new RegExp(`(.*)${escapeRegExp(target)}`);
-                    if (r = frontTextMatch(lineItem, i, re)) {
-                        const start = Array.from(r[1]).length;
-                        preRubyEndIndex = start + Array.from(target).length;
+                    if (r = currentText.match(re)) {
+                        const start = getCharLength(r[1]);
+                        preRubyEndIndex = start + getCharLength(target);
                         addRubyCommands(commands, start, preRubyEndIndex, startText, "ママ");
                     }
                 } else if (item.text.match(/(?:ルビの)*「(?:.*)」は(?:底本では|ママ)/)) {
-                    addCommand(commands, frontTextLength(lineItem, i), "span", `class="notes"`, item.raw ? item.text : escapeHtml(item.text));
+                    addCommand(commands, currentPos, "span", `class="notes"`, item.raw ? item.text : escapeHtml(item.text));
                 } else if (r = item.text.match(/「(.*)」の左(?:に|は)「(.*)」のルビ］/)) {
                     const [_, target, command] = r;
                     const re = new RegExp(`(.*)${escapeRegExp(target)}`);
-                    if (r = frontTextMatch(lineItem, i, re)) {
-                        const start = Array.from(r[1]).length;
-                        const end = start + Array.from(target).length;
+                    if (r = currentText.match(re)) {
+                        const start = getCharLength(r[1]);
+                        const end = start + getCharLength(target);
                         addRubyCommands(commands, start, end, `class="ruby-under"`, command);
                     }
                 } else if (r = item.text.match(/［＃(?:左に)*「(.*)」の(?:ルビ|注記)付き終わり］/)) {
                     const command = r[1];
-                    addCommand(commands, frontTextLength(lineItem, i), `/ruby`, `<rt>${item.raw ? command : escapeHtml(command)}</rt>`);
+                    addCommand(commands, currentPos, `/ruby`, `<rt>${item.raw ? command : escapeHtml(command)}</rt>`);
                 } else if (r = item.text.match(/「(.*)」(?:の|に|は)(.*)］/)) {
                     const [_, target, command] = r;
                     const re = new RegExp(`(.*)${escapeRegExp(target)}`);
-                    if (r = frontTextMatch(lineItem, i, re)) {
+                    if (r = currentText.match(re)) {
                         let cinfo = commandList[command];
-                        let start = Array.from(r[1]).length;
-                        let end = start + Array.from(target).length;
+                        let start = getCharLength(r[1]);
+                        let end = start + getCharLength(target);
                         if (cinfo) {
                             addCommands(commands, start, end, cinfo.tag, `class="${cinfo.class}"`, "");
                         } else if (r = command.match(/(.*)段階(大きな文字|小さな文字)/)) {
@@ -328,39 +334,39 @@ const build = (commandTypeItemList: CommandTypeItem[][], curCommand = "title") =
                     const command = r[1];
                     const cinfo = commandList[command];
                     if (cinfo) {
-                        addCommand(commands, frontTextLength(lineItem, i), `/${cinfo.tag}`, "");
+                        addCommand(commands, currentPos, `/${cinfo.tag}`, "");
                     }
                 } else if (r = item.text.match(/［＃(.*)］/)) {
                     const command = r[1];
                     let cinfo = commandList[command];
                     if (cinfo) {
-                        addCommand(commands, frontTextLength(lineItem, i), `${cinfo.tag}`, `class="${cinfo.class}"`, cinfo.content);
+                        addCommand(commands, currentPos, `${cinfo.tag}`, `class="${cinfo.class}"`, cinfo.content);
                     } else if (r = command.match(/^([一二三四五六七八九十レ上中下甲乙丙丁天地人]+)$/)) {
-                        addCommand(commands, frontTextLength(lineItem, i), "sub", `class="kaeriten"`, r[1]);
+                        addCommand(commands, currentPos, "sub", `class="kaeriten"`, r[1]);
                     } else if (r = command.match(/^（(.+)）$/)) {
-                        addCommand(commands, frontTextLength(lineItem, i), "sub", `class="okurigana"`, item.raw ? r[1] : escapeHtml(r[1]));
+                        addCommand(commands, currentPos, "sub", `class="okurigana"`, item.raw ? r[1] : escapeHtml(r[1]));
                     } else if (r = command.match(/^(.*)段階(大きな文字|小さな文字)$/)) {
                         cinfo = commandList[r[2]];
                         const number = toHanNum(r[1]);
-                        addCommand(commands, frontTextLength(lineItem, i), cinfo.tag, `class="${cinfo.class}${number}"`, "");
+                        addCommand(commands, currentPos, cinfo.tag, `class="${cinfo.class}${number}"`, "");
                     } else if (r = command.match(/(.*)、(?:.*水準)*([0-9]+\-[0-9]+\-[0-9]+)/)) {
                         const [_, name, kukakuten] = r;
-                        if (r = frontTextMatch(lineItem, i, /(.*※)$/)) {
+                        if (r = currentText.match(/(.*※)$/)) {
                             const gaiji = getGaijiFromCode(kukakuten) || getGaijiFromName(name);
                             if (gaiji) {
-                                addCommand(commands, Array.from(r[1]).length, "UNICODE CHAR", gaiji);
+                                addCommand(commands, getCharLength(r[1]), "UNICODE CHAR", gaiji);
                             } else {
-                                addCommand(commands, Array.from(r[1]).length, "GAIJI IMAGE", `src="${kukakuten}.png" alt="${escapeHtml(command)}" class="gaiji"`);
+                                addCommand(commands, getCharLength(r[1]), "GAIJI IMAGE", `src="${kukakuten}.png" alt="${escapeHtml(command)}" class="gaiji"`);
                             }
                         }
                     } else if (r = command.match(/「.*」、U\+(.*)、/)) {
                         const character = String.fromCharCode(parseInt(r[1] || '0', 16));
-                        if (r = frontTextMatch(lineItem, i, /(.*※)$/)) {
-                            addCommand(commands, Array.from(r[1]).length, "UNICODE CHAR", character);
+                        if (r = currentText.match(/(.*※)$/)) {
+                            addCommand(commands, getCharLength(r[1]), "UNICODE CHAR", character);
                         }
                     } else if (command.match(/.*、.+\-.*/)) {
-                        if (r = frontTextMatch(lineItem, i, /(.*※)$/)) {
-                            const start = Array.from(r[1]).length;
+                        if (r = currentText.match(/(.*※)$/)) {
+                            const start = getCharLength(r[1]);
                             addCommands(commands, start - 1, start, "span", `class="notes gaiji" title="${escapeHtml(command)}"`, "");
                         }
                     }
@@ -368,25 +374,28 @@ const build = (commandTypeItemList: CommandTypeItem[][], curCommand = "title") =
             } else if (item.type === "ruby") {
                 if (item.start >= 0) {
                     const start = frontTextLength(lineItem, item.start);
-                    preRubyEndIndex = frontTextLength(lineItem, i);
+                    preRubyEndIndex = currentPos;
                     addRubyCommands(commands, start, preRubyEndIndex, "", item.text);
-                } else if ((r = frontTextMatch(lineItem, i, RE_RUBY_PATTERN)) && r?.length >= 2) {
-                    const r1Len = Array.from(r[1]).length;
-                    const r2Len = Array.from(r[2]).length;
+                } else if ((r = currentText.match(RE_RUBY_PATTERN)) && r?.length >= 2) {
+                    const r1Len = getCharLength(r[1]);
+                    const r2Len = getCharLength(r[2]);
                     const start = Math.max(r1Len, preRubyEndIndex);
                     preRubyEndIndex = r1Len + r2Len;
                     addRubyCommands(commands, start, preRubyEndIndex, "", item.text);
                 }
             }
         }
-        const textArr = [];
+        const textArr: string[] = [];
         for (let i = 0; i < chrArrLength; ++i) {
             appendTag(textArr, commands, i, chrArrLength);
             textArr.push(escapeHtml(chrArr[i]));
         }
         appendTag(textArr, commands, chrArrLength, chrArrLength);
-        for(const tag of appendTags.reverse()){
+        for (const tag of appendTags.reverse()) {
             textArr.push(`</${tag}>`);
+        }
+        for (const ctx of appendRestoreContexts) {
+            textArr.push(`<${ctx.tag} ${ctx.attr}>`);
         }
         // 一行ごとの変換結果を追加
         const text = textArr.join("");

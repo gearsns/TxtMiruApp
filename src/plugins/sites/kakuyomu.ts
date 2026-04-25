@@ -1,9 +1,14 @@
-import { TxtMiruSitePlugin, SitePluginInfo, appendSlash, checkForcePager, checkFetchAbortError, removeSlash, removeNodes, getHtmlDocument } from '../base'
-import { db } from '../../core/store'
-import * as DB_FILEDS from '../../constants/db_fileds'
-import { TxtMiruLib } from '../../core/lib/TxtMiruLib'
+import { TxtMiruSitePlugin, SitePluginInfo } from '../base'
+import * as Shared from '@shared'
+import { TxtMiruLib } from '../shared/TxtMiruLib'
+import { getHtmlDocument, TryFetchText } from '../shared/utils/network'
+const { createScriptFreeDocument, KumihanMod } = TxtMiruLib;
 
 const KAKUYOMU = "https://kakuyomu.jp/"
+const ReNovelIndex = /(https:\/\/kakuyomu\.jp\/works\/.*?)\//;
+const ReNovelPage = /(https:\/\/kakuyomu\.jp\/works\/.*?)\/(episodes\/.*)\/$/;
+const ReNovelIndexPage = /https:\/\/kakuyomu\.jp\/works\/[^\/]+\/$/;
+
 interface SubTitile {
     subtitle: string
     href: string
@@ -19,7 +24,7 @@ interface TocType {
     subtitles: SubTitile[]
 }
 
-const GetToc = (index_url: string, doc: Document) => {
+const GetToc = (indexUrl: string, doc: Document) => {
     const toc: TocType = {
         title: "",
         author: "",
@@ -27,51 +32,60 @@ const GetToc = (index_url: string, doc: Document) => {
         subtitles: []
     }
     try {
-        const script_data = doc.getElementById("__NEXT_DATA__")
+        const script_data = doc.getElementById("__NEXT_DATA__");
         if (!script_data) {
-            return toc
+            return toc;
         }
-        const m0 = index_url.match(/works\/(.*)/)
-        const base_name = (m0 && m0.length > 0) ? m0[1] : ""
-        const json = JSON.parse(script_data.innerHTML)
-        const apollo_state = json.props.pageProps.__APOLLO_STATE__
-        const root_query = apollo_state.ROOT_QUERY
-        const top_work_id = root_query["work({\"id\":\"" + base_name + "\"})"].__ref
-        const top_work = apollo_state[top_work_id]
-        toc.title = top_work.title
-        toc.author = apollo_state[top_work.author.__ref].activityName;
-        toc.story = `${top_work.catchphrase}\n${top_work.introduction}`
-        let chapter = ""
-        let index = 0
-        for (const tableOfContent of top_work.tableOfContentsV2) {
-            const subTableOfContents = apollo_state[tableOfContent.__ref]
-            if (subTableOfContents.chapter) {
-                chapter = apollo_state[subTableOfContents.chapter.__ref].title
-            }
-            const episodes = subTableOfContents.episodeUnions
-            for (const item of (episodes || [])) {
-                ++index;
-                const episode = apollo_state[item.__ref]
-                toc.subtitles.push({
-                    subtitle: episode.title,
-                    href: `/works/${base_name}/episodes/${episode.id}`,
-                    index: index,
-                    subdate: episode.publishedAt,
+        const json = JSON.parse(script_data.innerHTML);
+        const apolloState = json.props?.pageProps?.__APOLLO_STATE__;
+        if (!apolloState) return toc;
+        // URLからWork IDを抽出
+        const workId = indexUrl.match(/works\/([^/?#]+)/)?.[1] || "";
+        // ROOT_QUERYから該当するworkの参照（__ref）を探す
+        const rootQuery = apolloState.ROOT_QUERY;
+        const workRefKey = Object.keys(rootQuery).find(k => k.startsWith(`work({"id":"${workId}"}`));
+        const topWorkId = rootQuery[workRefKey || ""]?.__ref;
+        const topWork = apolloState[topWorkId || ""];
+        if (!topWork) return toc;
+        // 基本情報の抽出
+        const authorName = apolloState[topWork.author?.__ref]?.activityName || "";
+        const tocData: TocType = {
+            title: topWork.title || "",
+            author: authorName,
+            story: `${topWork.catchphrase || ""}\n${topWork.introduction || ""}`.trim(),
+            subtitles: []
+        };
+        // 目次データのフラット化
+        let globalIndex = 0;
+        tocData.subtitles = (topWork.tableOfContentsV2 || []).flatMap((tocRef: any) => {
+            const subToc = apolloState[tocRef.__ref];
+            const chapterTitle = apolloState[subToc?.chapter?.__ref]?.title || "";
+
+            return (subToc?.episodeUnions || []).map((episodeRef: any) => {
+                const episode = apolloState[episodeRef.__ref];
+                globalIndex++;
+
+                return {
+                    subtitle: episode?.title || "",
+                    href: `/works/${workId}/episodes/${episode?.id}`,
+                    index: globalIndex,
+                    subdate: episode?.publishedAt || "",
                     subupdate: "",
-                    chapter: chapter,
-                })
-            }
-        }
+                    chapter: chapterTitle,
+                };
+            });
+        });
+        return tocData;
     } catch (e) {
-        console.log(e)
+        console.log(e);
+        return toc;
     }
-    return toc
 }
 
 const makeItem = (url: string, text: string) => {
-    const doc = TxtMiruLib.HTML2Document(text)
+    const doc = createScriptFreeDocument(text);
     const item: TxtMiruItem = {
-        url: url,
+        url,
         className: "Kakuyomu",
         title: doc.title,
         "next-episode-text": "次へ",
@@ -79,105 +93,95 @@ const makeItem = (url: string, text: string) => {
         "episode-index-text": "カクヨム",
         "episode-index": KAKUYOMU
     }
-    if (/__NEXT_DATA__/.test(text)) {
-        const parser = new DOMParser()
-        const tocDodc = parser.parseFromString(text, "text/html")
-        const toc = GetToc(url, tocDodc)
-        if (toc.subtitles && toc.subtitles.length > 0 && /works\/[0-9]+$/.test(url)) {
+    if (text.includes("__NEXT_DATA__") && /works\/\d+$/.test(url)) {
+        const parser = new DOMParser();
+        const tocDoc = parser.parseFromString(text, "text/html");
+        const toc = GetToc(url, tocDoc);
+        if (toc.subtitles?.length > 0) {
             // Indexページが最初の数件しか目次を表示しないのでページ再生成
-            const arrHtml = []
-            arrHtml.push(`<h1 class='title'>${TxtMiruLib.EscapeHtml(toc.title)}</h1>`)
-            arrHtml.push(`<h2 class='author'>${TxtMiruLib.EscapeHtml(toc.author)}</h2>`)
-            arrHtml.push(`<div><p>${TxtMiruLib.EscapeHtml(toc.story).replace(/\n/g, "<br>")}</p></div>`)
-            arrHtml.push(`<ul class="subtitles">`)
-            let preChpter = ""
-            for (const item of toc.subtitles) {
-                if (item.chapter && preChpter !== item.chapter) {
-                    arrHtml.push(`<li class="chapter">${TxtMiruLib.EscapeHtml(item.chapter)}</li>`)
+            let preChapter = "";
+            const subtitlesHtml = toc.subtitles.map((sub: any) => {
+                let html = "";
+                if (sub.chapter && preChapter !== sub.chapter) {
+                    html += `<li class="chapter">${Shared.escapeHtml(sub.chapter)}</li>`;
                 }
-                preChpter = item.chapter
-                const d = new Date(item.subupdate || item.subdate || "")
-                const strDate = d.getFullYear()
-                    ? `<span class="sideways_date">${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日</span>`
-                    : ""
-                arrHtml.push(`<li><a href="${item.href}">${TxtMiruLib.EscapeHtml(item.subtitle || "")}</a><span class='long_update'>${strDate}</span></li>`)
-            }
-            arrHtml.push(`</ul>`)
-            arrHtml.push(`<div>`)
-            arrHtml.push(`<a class='txtmiru_pager' id='TxtMiruNextPage' href='${toc.subtitles[0].href}'>次へ （${TxtMiruLib.EscapeHtml(toc.subtitles[0].subtitle.trim())}）</a>`)
-            arrHtml.push("</div>")
-            doc.body.innerHTML = arrHtml.join("")
+                preChapter = sub.chapter;
+                const ret = TxtMiruLib.formatDateString(sub.subupdate || sub.subdate);
+                const strDate = ret
+                    ? ""
+                    : `<span class="sideways_date">${ret}</span>`;
+                html += `<li><a href="${sub.href}">${Shared.escapeHtml(sub.subtitle || "")}</a>${strDate}</li>`;
+                return html;
+            }).join("");
+            const firstSub = toc.subtitles[0];
+            doc.body.innerHTML =
+                `<h1 class='title'>${Shared.escapeHtml(toc.title)}</h1>` +
+                `<h2 class='author'>${Shared.escapeHtml(toc.author)}</h2>` +
+                `<div><p>${Shared.escapeHtml(toc.story).replace(/\n/g, "<br>")}</p></div>` +
+                `<ul class="subtitles">${subtitlesHtml}</ul>` +
+                `<div>` +
+                `<a class='txtmiru_pager' id='TxtMiruNextPage' href='${firstSub.href}'>次へ （${Shared.escapeHtml(firstSub.subtitle.trim())}）</a>` +
+                `</div>`
+                ;
         }
     }
-    TxtMiruLib.KumihanMod(url, doc)
-    const remove_nodes = []
-    for (const el of doc.querySelectorAll("h2,h3")) {
-        if (/^(新着おすすめレビュー|おすすめレビュー|関連小説)$/.test(el.textContent)) {
-            remove_nodes.push(el.parentNode)
+    KumihanMod(url, doc);
+    const ignorePatterns = /^(新着おすすめレビュー|おすすめレビュー|関連小説)$/;
+    doc.querySelectorAll("h2, h3").forEach(el => {
+        if (ignorePatterns.test(el.textContent || "")) {
+            el.parentElement?.remove();
         }
-    }
-    removeNodes(remove_nodes)
-    const forcePager = checkForcePager(doc, item)
-    let title = ""
-    for (const el_a of doc.getElementsByTagName("A") as HTMLCollectionOf<HTMLAnchorElement>) {
-        const href = el_a.getAttribute("href") || ""
-        if (!/^http/.test(href)) {
-            el_a.href = TxtMiruLib.ConvertAbsoluteURL(url, href)
+    });
+    let title = "";
+    TxtMiruLib.createPager(url, doc, item, (anchor) => {
+        const action = anchor.getAttribute("data-link-click-action-name");
+        const itemProp = anchor.getAttribute("itemprop");
+        if (action === "WorksEpisodesEpisodeHeaderPreviousEpisode") {
+            anchor.style.display = "none";
+            return "prev";
+        } else if (action === "WorksEpisodesEpisodeFooterNextEpisode") {
+            anchor.style.display = "none";
+            return "next";
+        } else if (itemProp === "item") {
+            title = `<a class="kakuyomu_title" href="${anchor.href}">${anchor.getAttribute("title")}</a>`;
+            anchor.style.display = "none";
+            return "index";
         }
-        if (el_a.getAttribute("data-link-click-action-name") === "WorksEpisodesEpisodeHeaderPreviousEpisode") {
-            forcePager.setPrevEpisode(el_a, item)
-            el_a.style.display = "none"
-        } else if (el_a.getAttribute("data-link-click-action-name") === "WorksEpisodesEpisodeFooterNextEpisode") {
-            forcePager.setNextEpisode(el_a, item)
-            el_a.style.display = "none"
-        } else if (el_a.getAttribute("itemprop") === "item") {
-            forcePager.setEpisodeIndex(el_a, item)
-            title = `<a class="kakuyomu_title" href="${el_a.href}">${el_a.getAttribute("title")}</a>`
-            el_a.style.display = "none"
-        }
-    }
-    item.html = title + doc.body.innerHTML
+        return null;
+    });
+    item.html = title + doc.body.innerHTML;
     return item
 }
 
 export class Kakuyomu extends TxtMiruSitePlugin {
     Match = (url: string): boolean => url.startsWith(KAKUYOMU)
-    GetDocument = async (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem | null> => this._GetDocument(txtMiru, url)
-        .then(item => (item?.html && /An existing connection was forcibly closed by the remote host/.test(item.html))
+    GetDocument = async (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem | null> => {
+        const item = await this._GetDocument(txtMiru, url);
+        return (item?.html && /An existing connection was forcibly closed by the remote host/.test(item.html))
             ? this._GetDocument(txtMiru, url)
-            : item
-        )
-    _GetDocument = async (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem | null> =>
-        this.TryFetch(txtMiru, url, {
-            charset: "UTF-8"
-        },
-            async (fetchOpt: RequestInit, req_url: string) =>
-                fetch(req_url, fetchOpt)
-                    .then(TxtMiruLib.ValidateTextResponse)
-                    .then(text => makeItem(url, text))
-                    .catch(err => checkFetchAbortError(err, url))
-        )
+            : item;
+    }
+    private _GetDocument = async (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem | null> =>
+        TryFetchText(txtMiru, url, { charset: "UTF-8" },
+            (text: string) => makeItem(url, text)
+        );
     GetInfo = async (txtMiru: TxtMiru, urls: string | string[], callback: ((urls: string[]) => void) | null = null): Promise<SitePluginInfo[] | null> => {
         const results: SitePluginInfo[] = [];
         for (const url of (Array.isArray(urls) ? urls : [urls])) {
             if (!this.Match(url)) { continue; }
-            const m = appendSlash(url).match(/(https:\/\/kakuyomu\.jp\/works\/.*?)\//)
+            const m = Shared.appendSlash(url).match(ReNovelIndex);
             if (!m) {
-                continue
+                continue;
             }
-            callback?.([url])
-            const index_url = m[1]
-            const req_url = `${db.setting[DB_FILEDS.WEBSERVERURL]}?${new URLSearchParams({
-                url: `${index_url}`,
-                charset: "UTF-8"
-            })}`
-            const doc = await getHtmlDocument(req_url, txtMiru)
-            const toc = GetToc(index_url, doc)
-            const author = toc.author || doc.getElementById("workAuthor-activityName")?.innerText || ""
-            const title = toc.title || doc.getElementById("workTitle")?.innerText || ""
+            callback?.([url]);
+            const index_url = m[1];
+            const doc = await getHtmlDocument({ url: index_url, charset: "UTF-8" }, txtMiru);
+            const toc = GetToc(index_url, doc);
+            const author = toc.author || doc.getElementById("workAuthor-activityName")?.textContent || ""
+            const title = toc.title || doc.getElementById("workTitle")?.textContent || ""
             const max_page = toc.subtitles.length || doc.getElementsByClassName("widget-toc-episode-titleLabel")?.length || 1
             results.push({
-                url: removeSlash(url),
+                url: Shared.removeSlash(url),
                 max_page: max_page,
                 name: title,
                 author: author
@@ -186,30 +190,25 @@ export class Kakuyomu extends TxtMiruSitePlugin {
         return results
     }
     GetPageNo = async (txtMiru: TxtMiru, url: string): Promise<{ url: string, page_no: number, index_url: string } | null> => {
-        if (this.Match(url)) {
-            url = appendSlash(url)
-            const m = url.match(/(https:\/\/kakuyomu\.jp\/works\/.*?)\/(episodes\/.*)\/$/)
-            if (m && m?.length > 0) {
-                const page_url = m[2]
-                const index_url = m[1]
-                const req_url = `${db.setting[DB_FILEDS.WEBSERVERURL]}?${new URLSearchParams({
-                    url: `${url}episode_sidebar`,
-                    charset: "UTF-8"
-                })}`
-                const doc = await getHtmlDocument(req_url, txtMiru)
-                let page_no = 0
-                for (let anchor of doc.getElementsByClassName("widget-toc-episode-episodeTitle") as HTMLCollectionOf<HTMLAnchorElement>) {
-                    ++page_no
-                    if (anchor.href.includes(page_url)) {
-                        break
-                    }
-                }
-                return { url: removeSlash(url), page_no: page_no, index_url: index_url }
-            } else if (/https:\/\/kakuyomu\.jp\/works\/[^\/]+\/$/.test(url)) {
-                return { url: removeSlash(url), page_no: 0, index_url: removeSlash(url) }
-            }
+        if (!this.Match(url)) {
+            return null;
         }
-        return null
+        url = Shared.appendSlash(url);
+        const m = url.match(ReNovelPage);
+        if (m && m?.length > 0) {
+            const [_, indexUrl, pageUrl] = m;
+            const doc = await getHtmlDocument({ url: `${url}episode_sidebar`, charset: "UTF-8" }, txtMiru);
+            const pageNo = TxtMiruLib.getPageNumber(doc, ".widget-toc-episode-episodeTitle", pageUrl);
+            return { url: Shared.removeSlash(url), page_no: pageNo, index_url: indexUrl };
+        } else if (ReNovelIndexPage.test(url)) {
+            return { url: Shared.removeSlash(url), page_no: 0, index_url: Shared.removeSlash(url) };
+        }
+        return null;
     }
     Name = () => "カクヨム"
 }
+
+/** @deprecated テスト専用。他ファイルで使用禁止。 */
+export const Tests = {
+    GetToc, makeItem
+};

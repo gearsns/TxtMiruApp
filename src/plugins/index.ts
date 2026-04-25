@@ -1,27 +1,22 @@
 import { TxtMiruSitePlugin } from "./base";
 
 const site_list: TxtMiruSitePlugin[] = [];
-export class TxtMiruSiteManager {
-    static AddSite = (site: TxtMiruSitePlugin) => site_list.unshift(site);
-    static get SiteList() { return site_list; }
-    static FindSite = (url: string): (TxtMiruSitePlugin | null) => {
-        for (const site of site_list) {
-            if (site.Match(url)) {
-                return site;
-            }
+const FindSite = (url: string): (TxtMiruSitePlugin | null) => site_list.find(site => site.Match(url)) ?? null;
+
+export const TxtMiruSiteManager = {
+    AddSite: (site: TxtMiruSitePlugin) => site_list.unshift(site),
+    get SiteList() { return site_list; },
+    FindSite,
+    GetDocument: async (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem | null> => {
+        try {
+            const doc = await FindSite(url)?.GetDocument?.(txtMiru, url);
+            if (doc) return doc;
+        } catch (e) {
+            console.error(`Failed to get document from ${url}`, e);
         }
         return null;
     }
-    static GetDocument = (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem | null> => {
-        for (const site of site_list) {
-            if (site.Match(url) && site.GetDocument) {
-                const doc = site.GetDocument(txtMiru, url);
-                if (doc) return doc;
-            }
-        }
-        return new Promise((_, reject) => setTimeout(() => reject(null)));
-    };
-}
+} as const;
 
 import { Akatsuki } from "./sites/akatsuki";
 TxtMiruSiteManager.AddSite(new Akatsuki());
@@ -50,6 +45,8 @@ TxtMiruSiteManager.AddSite(new TxtMiruCacheSite());
 import { TxtMiruWebCacheSite } from './sites/TxtMiruWebCacheSite'
 TxtMiruSiteManager.AddSite(new TxtMiruWebCacheSite());
 
+import { TxtMiruIndexSite } from './sites/TxtMiruIndexSite'
+TxtMiruSiteManager.AddSite(new TxtMiruIndexSite());
 
 
 

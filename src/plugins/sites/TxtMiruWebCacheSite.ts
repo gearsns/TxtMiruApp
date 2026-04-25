@@ -1,44 +1,42 @@
-import { TxtMiruLib } from '../../core/lib/TxtMiruLib'
-import { TxtMiruSitePlugin, checkFetchAbortError, checkForcePager } from '../base'
+/*
+* [WebサーバーのURL]で指定したサーバー側で、TxtMiru用のサイトとして個別に制御されることを期待した架空のドメイン
+*/
+import { TxtMiruLib } from '../shared/TxtMiruLib'
+import { TxtMiruSitePlugin } from '../base'
+const { TryFetchNoScriptDocument, KumihanMod } = TxtMiruLib;
 
-const makeItem = (url: string, text: string) => {
-    const doc = TxtMiruLib.HTML2Document(text)
-    const item: TxtMiruItem = { className: "Narou TxtMiruCacheWeb", "url": url, "title": doc.title }
-    TxtMiruLib.KumihanMod(url, doc)
+const makeItem = (url: string, doc: Document) => {
+    const item: TxtMiruItem = { className: "Narou TxtMiruCacheWeb", url, title: doc.title };
+    KumihanMod(url, doc);
     //
-    const forcePager = checkForcePager(doc, item)
-    for (const elA of doc.getElementsByTagName("A") as HTMLCollectionOf<HTMLAnchorElement>) {
-        const href = elA.getAttribute("href") || ""
-        if (!/^http/.test(href)) {
-            elA.href = TxtMiruLib.ConvertAbsoluteURL(url, href)
-        }
-        const classlist = elA.classList
-        if (elA.textContent === "前へ"
+    TxtMiruLib.createPager(url, doc, item, (anchor) => {
+        const textContent = anchor.textContent?.trim();
+        const classlist = anchor.classList;
+        if (textContent === "前へ"
             || classlist.contains("c-pager__item--before")) {
-            forcePager.setPrevEpisode(elA, item)
-        } else if (elA.textContent === "次へ"
+            return "prev";
+        } else if (textContent === "次へ"
             || classlist.contains("c-pager__item--next")) {
-            forcePager.setNextEpisode(elA, item)
-        } else if (elA.textContent === "目次" && elA.id !== "TxtMiruTocPage") {
-            forcePager.setEpisodeIndex(elA, item)
+            return "next";
+        } else if (textContent === "目次" && anchor.id !== "TxtMiruTocPage") {
+            return "index";
         }
-    }
-    item["html"] = doc.body.innerHTML
-    return item
+        return null;
+    });
+    item.html = doc.body.innerHTML;
+    return item;
 }
 
 export class TxtMiruWebCacheSite extends TxtMiruSitePlugin {
-    Match = (url: string) => /https:\/\/txtmiru\.web\.cache/.test(url);
+    Match = (url: string) => url.startsWith("https://txtmiru.web.cache");
     GetDocument = async (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem> =>
-        this.TryFetch(txtMiru, url, {
-            charset: "UTF-8"
-        },
-            async (fetchOpt: RequestInit, reqUrl: string) =>
-                fetch(reqUrl, fetchOpt)
-                    .then(TxtMiruLib.ValidateTextResponse)
-                    .then(text => makeItem(url, text))
-                    .catch(err => checkFetchAbortError(err, url))
+        TryFetchNoScriptDocument(txtMiru, url, { charset: "UTF-8" },
+            (doc: Document) => makeItem(url, doc)
         );
     Name = () => "TxtMiruWeb";
 }
 
+/** @deprecated テスト専用。他ファイルで使用禁止。 */
+export const Tests = {
+    makeItem
+}

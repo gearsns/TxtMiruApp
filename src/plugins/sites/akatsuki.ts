@@ -1,134 +1,105 @@
-import { TxtMiruSitePlugin, SitePluginInfo, appendSlash, checkForcePager, checkFetchAbortError, removeSlash, removeNodes, getHtmlDocument } from '../base'
-import { db } from '../../core/store'
-import * as DB_FILEDS from '../../constants/db_fileds'
-import { TxtMiruLib } from '../../core/lib/TxtMiruLib'
+import { TxtMiruSitePlugin, SitePluginInfo } from '../base'
+import * as Shared from '@shared'
+import { TxtMiruLib } from '../shared/TxtMiruLib'
+import { getHtmlDocument } from '../shared/utils/network'
+const { TryFetchNoScriptDocument, KumihanMod, removeNodes } = TxtMiruLib;
 
-const AKATSUKI = "https://www.akatsuki-novels.com/"
-const ReNovelIndex = /https:\/\/www\.akatsuki\-novels\.com\/stories\/index\/novel_id~[0-9]+\/$/
-const ReNovelPage = /https:\/\/www\.akatsuki\-novels\.com\/stories\/view\/([0-9]+)\/novel_id~([0-9]+)\/$/
+const AKATSUKI = "https://www.akatsuki-novels.com/";
+const ReNovelIndex = /https:\/\/www\.akatsuki\-novels\.com\/stories\/index\/novel_id~\d+\/$/;
+const ReNovelPage = /https:\/\/www\.akatsuki\-novels\.com\/stories\/view\/(\d+)\/novel_id~(\d+)\/$/;
+const PAGE_SELECTOR = ".list > a";
+
+const makeItem = (url: string, doc: Document): TxtMiruItem => {
+    const item: TxtMiruItem = {
+        url,
+        className: "Akatsuki",
+        title: doc.title,
+        "episode-index-text": "暁",
+        "episode-index": AKATSUKI
+    };
+    const nodes = Array.from(doc.querySelectorAll("#trace,#header,#footer,.spacer"));
+    for (const e of doc.getElementsByTagName("span") as HTMLCollectionOf<HTMLSpanElement>) {
+        if (e.textContent?.includes("しおりを利用するには")) {
+            nodes.push(e);
+        }
+    }
+    removeNodes(nodes);
+    const dummyUrl = Shared.isHtml(url) ? url : Shared.appendSlash(url) + "index.html";
+    KumihanMod(dummyUrl, doc);
+    const pagerText: Record<string, "prev" | "next" | "index"> = {
+        "< 前ページ": "prev",
+        "次ページ >": "next",
+        "目次": "index"
+    };
+    TxtMiruLib.createPager(url, doc, item, (anchor) => {
+        const text = anchor.textContent?.trim();
+        const parent = anchor.parentElement;
+        if (parent?.matches("h3, div") && parent.innerText?.includes("作者：")) {
+            anchor.classList.add("author");
+        }
+        return pagerText[text] ?? null;
+    });
+    item.html = doc.body.innerHTML;
+    return item;
+}
+
+const getIndexUrl = (url: string) => {
+    url = Shared.appendSlash(url);
+    const r = url.match(ReNovelPage);
+    if (r) {
+        return { pageUrl: r[1], indexUrl: `${AKATSUKI}stories/index/novel_id~${r[2]}` };
+    } else if (ReNovelIndex.test(url)) {
+        return { indexUrl: Shared.removeSlash(url) };
+    }
+    return {};
+}
 export class Akatsuki extends TxtMiruSitePlugin {
-    Match = (url: string): boolean => url.startsWith(AKATSUKI)
+    Match = (url: string): boolean => url.startsWith(AKATSUKI);
     GetDocument = (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem | null> | null =>
-        this.TryFetch(txtMiru, url, {
-            charset: "UTF-8"
-        },
-            async (fetchOpt: RequestInit, reqUrl: string): Promise<TxtMiruItem> =>
-                fetch(reqUrl, fetchOpt)
-                    .then(TxtMiruLib.ValidateTextResponse)
-                    .then(text => {
-                        const doc = TxtMiruLib.HTML2Document(text)
-                        const dummyUrl = /\.html$/.test(url) ? url : appendSlash(url) + "index.html"
-                        let nodes = Array.from(doc.querySelectorAll("#trace,#header,#footer,.spacer"))
-                        for (const e of doc.getElementsByTagName("SPAN") as HTMLCollectionOf<HTMLSpanElement>) {
-                            if (/しおりを利用するにはログインしてください。会員登録がまだの場合はこちらから。/.test(e.innerText)) {
-                                nodes.push(e)
-                            }
-                        }
-                        removeNodes(nodes)
-                        nodes = []
-                        const item: TxtMiruItem = {
-                            url: url,
-                            className: "Akatsuki",
-                            title: doc.title,
-                            "episode-index-text": "暁",
-                            "episode-index": AKATSUKI
-                        }
-                        TxtMiruLib.KumihanMod(dummyUrl, doc)
-                        const forcePager = checkForcePager(doc, item)
-                        for (const elA of doc.getElementsByTagName("h3 > a:first-of-type, div > a:first-of-type") as HTMLCollectionOf<HTMLAnchorElement>) {
-                            if ((elA.parentNode as HTMLElement).innerText.includes("作者：")) {
-                                elA.className = "author"
-                            }
-                        }
-                        for (const elA of doc.getElementsByTagName("A") as HTMLCollectionOf<HTMLAnchorElement>) {
-                            const href = elA.getAttribute("href") || ""
-                            if (!/^http/.test(href)) {
-                                elA.href = TxtMiruLib.ConvertAbsoluteURL(url, href)
-                            }
-                            if (/https:\/\/twitter\.com/.test(href)) {
-                                nodes.push(elA)
-                            }
-                            if (elA.innerText === "< 前ページ") {
-                                forcePager.setPrevEpisode(elA, item)
-                            } else if (elA.innerText === "次ページ >") {
-                                forcePager.setNextEpisode(elA, item)
-                            } else if (elA.innerText === "目次") {
-                                forcePager.setEpisodeIndex(elA, item)
-                            }
-                        }
-                        removeNodes(nodes)
-                        item.html = doc.body.innerHTML
-                        return item
-                    })
-                    .catch(err => checkFetchAbortError(err, url))
-        )
+        TryFetchNoScriptDocument(txtMiru, url, { charset: "UTF-8" },
+            (doc: Document) => makeItem(url, doc)
+        );
     GetInfo = async (txtMiru: TxtMiru, urls: string | string[], callback: ((urls: string[]) => void) | null = null): Promise<SitePluginInfo[] | null> => {
         const results: SitePluginInfo[] = [];
         for (const url of (Array.isArray(urls) ? urls : [urls])) {
             if (!this.Match(url)) { continue; }
-            let indexUrl = ""
-            let r
-            const checkUrl = appendSlash(url)
-            if (r = checkUrl.match(ReNovelPage)) {
-                indexUrl = `${AKATSUKI}stories/index/novel_id~${r[2]}`
-            } else if (ReNovelIndex.test(checkUrl)) {
-                indexUrl = removeSlash(checkUrl)
-            } else {
-                continue
-            }
-            callback?.([url])
-            const reqUrl = `${db.setting[DB_FILEDS.WEBSERVERURL]}?${new URLSearchParams({
-                url: `${indexUrl}`,
-                charset: "UTF-8"
-            })}`
-            const doc = await getHtmlDocument(reqUrl, txtMiru)
-            const elTitle = doc.getElementById("LookNovel")
-            const name = elTitle ? elTitle.innerText : doc.title
-            const maxPage = doc.querySelectorAll(".list > a").length
-            let author = ""
-            for (const el of doc.getElementsByTagName("H3") as HTMLCollectionOf<HTMLElement>) {
-                if (el.innerText.includes("作者：")) {
-                    const elA = el.querySelector("A") as HTMLAnchorElement
-                    if (elA) {
-                        author = elA.innerText
-                        break
-                    }
-                }
-            }
+            const { indexUrl } = getIndexUrl(url);
+            if (!indexUrl) { continue; }
+            callback?.([url]);
+            const doc = await getHtmlDocument({ url: indexUrl, charset: "UTF-8" }, txtMiru);
+            const elTitle = doc.getElementById("LookNovel");
+            const name = elTitle?.innerText ?? doc.title;
+            const maxPage = doc.querySelectorAll(PAGE_SELECTOR).length;
+            const author = Array.from(doc.getElementsByTagName("H3") as HTMLCollectionOf<HTMLElement>)
+                .find(el => el.innerText.includes("作者："))
+                ?.querySelector("a")?.innerText || "";
             results.push({
-                url: removeSlash(url),
+                url: Shared.removeSlash(url),
                 max_page: maxPage,
                 name: name,
                 author: author
-            })
+            });
         }
-        return results
+        return results;
     }
     GetPageNo = async (txtMiru: TxtMiru, url: string): Promise<{ url: string, page_no: number, index_url: string } | null> => {
-        if (this.Match(url)) {
-            url = appendSlash(url)
-            let r
-            if (r = url.match(ReNovelPage)) {
-                const pageUrl = r[1]
-                const indexUrl = `${AKATSUKI}stories/index/novel_id~${r[2]}`
-                const reqUrl = `${db.setting[DB_FILEDS.WEBSERVERURL]}?${new URLSearchParams({
-                    url: `${indexUrl}`,
-                    charset: "UTF-8"
-                })}`
-                const doc = await getHtmlDocument(reqUrl, txtMiru)
-                let pageNo = 0
-                for (const anchor of doc.querySelectorAll(".list > a") as NodeListOf<HTMLAnchorElement>) {
-                    ++pageNo
-                    if (anchor.href.includes(pageUrl)) {
-                        break
-                    }
-                }
-                return { url: removeSlash(url), page_no: pageNo, index_url: indexUrl }
-            } else if (ReNovelIndex.test(url)) {
-                return { url: removeSlash(url), page_no: 0, index_url: removeSlash(url) }
-            }
+        if (!this.Match(url)) {
+            return null;
         }
-        return null
+        const { indexUrl, pageUrl } = getIndexUrl(url);
+        if (pageUrl && indexUrl) {
+            const doc = await getHtmlDocument({ url: indexUrl, charset: "UTF-8" }, txtMiru);
+            const pageNo = TxtMiruLib.getPageNumber(doc, PAGE_SELECTOR, pageUrl);
+            return { url: Shared.removeSlash(url), page_no: pageNo, index_url: indexUrl };
+        } else if (indexUrl) {
+            return { url: indexUrl, page_no: 0, index_url: indexUrl };
+        }
+        return null;
     }
-    Name = () => "暁"
+    Name = () => "暁";
 }
+
+/** @deprecated テスト専用。他ファイルで使用禁止。 */
+export const Tests = {
+    makeItem, getIndexUrl
+};

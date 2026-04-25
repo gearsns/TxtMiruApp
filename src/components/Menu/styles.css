@@ -1,0 +1,168 @@
+:host {
+  top: 0;
+  position: fixed;
+  z-index: 3;
+  width: 100vw;
+}
+
+.menu-trigger,
+.menu-trigger span {
+  display: inline-block;
+  transition: all .4s;
+  box-sizing: border-box;
+  padding: 6px 12px;
+}
+
+.menu-trigger:hover {
+  background: #e7e7dae3;
+}
+
+.menu-trigger {
+  position: relative;
+  width: 3rem;
+  height: 3rem;
+  background: #e7e7dae3;
+  border: none;
+  appearance: none;
+  cursor: pointer;
+  border-radius: 2px;
+
+  & span {
+    position: absolute;
+    left: 0;
+    padding: 0;
+    margin-left: 0.5rem;
+    width: calc(100% - 1rem);
+    height: 0.2rem;
+    background: #18b7cd;
+    border-radius: 0.2rem;
+
+    &:nth-of-type(1) {
+      top: 0.7rem;
+    }
+
+    &:nth-of-type(2) {
+      top: 1.4rem;
+    }
+
+    &:nth-of-type(3) {
+      bottom: 0.7rem;
+    }
+  }
+
+  &.active {
+    transform: rotate(360deg);
+
+    & span:nth-of-type(1) {
+      transform: translateY(0.7rem) rotate(-45deg);
+    }
+
+    & span:nth-of-type(2) {
+      transform: translateY(0) rotate(45deg);
+    }
+
+    & span:nth-of-type(3) {
+      opacity: 0;
+    }
+  }
+}
+
+.hidden {
+  display: none;
+}
+
+:host([position="bottom"]) {
+  top: calc(100% - 5rem);
+
+  & #control-button-panel {
+    top: 0;
+  }
+}
+
+@media screen and (max-height:600px) {
+  :host([position="bottom"]) {
+    top: calc(100% - 4.5rem);
+  }
+}
+
+#control-button-panel {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+
+  /* アニメーション設定 */
+  opacity: 0;
+  visibility: hidden;
+  translate: -400px 0;
+  transition: all 0.6s;
+
+  /* クラスがついている時 */
+  &.active {
+    opacity: 1;
+    visibility: visible;
+    translate: 0 0;
+  }
+
+  /* 内部要素 */
+  & div.url {
+    margin-top: 1rem;
+    padding: 0.5em;
+    color: whitesmoke;
+    font-size: 1.5rem;
+    width: fit-content;
+
+    & a {
+      color: white;
+    }
+  }
+}
+
+/* 共通のスタイルを一括定義 */
+#btn_next_episode.cached::after,
+#btn_next_episode.loading::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0.5em;
+  height: 0.5em;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+/* 変化する色だけを個別に指定 */
+#btn_next_episode.cached::after {
+  background-color: rgb(95, 86, 5);
+}
+
+#btn_next_episode.loading::after {
+  background-color: rgb(255, 72, 0);
+}
+
+:host([theme="dark"]) {
+  ::-webkit-scrollbar {
+    background: black;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #131313;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgb(56, 56, 56);
+  }
+
+  .menu-trigger {
+    position: relative;
+    width: 3rem;
+    height: 3rem;
+    background: rgb(56, 56, 56);
+    border: none;
+    appearance: none;
+    cursor: pointer;
+  }
+
+  .menu-trigger:hover {
+    background: rgb(56, 56, 56);
+  }
+}

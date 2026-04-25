@@ -1,8 +1,13 @@
 {
   "name": "txtmiruapp",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.1.5",
   "type": "module",
+  "description": "TxtMiru Appは、ブラウザ上でネット小説「小説家になろう」、「カクヨム」、「青空文庫」を縦組み表示にして読むことができます。ブラウザで表示するのでiPhone、iPad、Androidなどのスマホ・モバイル環境でも縦書きで小説を楽しめます",
+  "appConfig": {
+    "title": "TxtMiru App",
+    "shortDescription": "縦書き小説ビューア"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -14,6 +19,7 @@
     "@types/encoding-japanese": "^2.2.1",
     "@types/node": "^25.5.2",
     "@vitest/browser-playwright": "^4.1.3",
+    "fake-indexeddb": "^6.2.5",
     "glob": "^13.0.6",
     "jsdom": "^29.0.2",
     "path": "^0.12.7",

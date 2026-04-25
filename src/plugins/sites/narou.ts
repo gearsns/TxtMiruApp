@@ -1,49 +1,35 @@
-import { TxtMiruSitePlugin, appendSlash, checkForcePager, checkFetchAbortError, SitePluginInfo } from '../base'
-import { db } from '../../core/store'
-import * as DB_FILEDS from '../../constants/db_fileds'
+import { TxtMiruSitePlugin, SitePluginInfo } from '../base'
+import { db } from '@/services/storage'
+import * as Shared from '@shared'
 import fetchJsonp from 'fetch-jsonp'
-import { TxtMiruLib } from '../../core/lib/TxtMiruLib'
+import { TxtMiruLib } from '../shared/TxtMiruLib'
+const { TryFetchNoScriptDocument, KumihanMod } = TxtMiruLib;
 
-const makeItem = (url: string, text: string): TxtMiruItem => {
-    const doc = TxtMiruLib.HTML2Document(text);
+const ReNovelPage = /(https:\/\/.*\.syosetu\.com\/n[A-Za-z0-9]+)\/(\d+)/;
+const ReNovelIndexPage = /https:\/\/.*\.syosetu\.com\/n[A-Za-z0-9]+\/$/;
+
+const makeItem = (url: string, doc: Document): TxtMiruItem => {
     const item: TxtMiruItem = { className: "Narou", url: url, title: doc.title };
-    TxtMiruLib.KumihanMod(url, doc);
+    KumihanMod(url, doc);
 
-    const forcePager = checkForcePager(doc, item);
-    for (const elA of Array.from(doc.getElementsByTagName("A") as HTMLCollectionOf<HTMLAnchorElement>)) {
-        const href = elA.getAttribute("href") || "";
-        if (!/^http/.test(href)) {
-            elA.href = TxtMiruLib.ConvertAbsoluteURL(url, href);
-        }
-        const classlist = elA.classList;
-        if (elA.textContent === "前へ"
-            || classlist.contains("c-pager__item--before")) {
-            forcePager.setPrevEpisode(elA, item);
-        } else if (elA.textContent === "次へ"
-            || classlist.contains("c-pager__item--next")) {
-            forcePager.setNextEpisode(elA, item);
-        } else if (elA.textContent === "目次"
-            && elA.id !== "TxtMiruTocPage") {
-            forcePager.setEpisodeIndex(elA, item);
-        }
-    }
-    const elChapter = doc.querySelector(".p-novel__subtitle-chapter")
-    if (elChapter) {
-        item.title += ` ${elChapter.textContent}`
-    }
-    const elEpisode = doc.querySelector(".p-novel__subtitle-episode")
-    if (elEpisode) {
-        item.title += ` ${elEpisode.textContent}`
-    }
+    TxtMiruLib.createPager(url, doc, item, (anchor) => {
+        const text = anchor.textContent;
+        const classlist = anchor.classList;
+        if (text === "前へ" || classlist.contains("c-pager__item--before")) return "prev";
+        if (text === "次へ" || classlist.contains("c-pager__item--next")) return "next";
+        if (text === "目次" && anchor.id !== "TxtMiruTocPage") return "index";
+        return null;
+    });
+    const subTitle = [".p-novel__subtitle-chapter", ".p-novel__subtitle-episode"]
+        .map(sel => doc.querySelector(sel)?.textContent)
+        .filter(Boolean)
+        .join(" ");
+    if (subTitle) item.title += ` ${subTitle}`;
+
     for (const el of doc.getElementsByClassName("long_update")) {
-        let elRev = null
-        for (const el_span of el.getElementsByTagName("SPAN")) {
-            if (el_span.getAttribute("title")) {
-                elRev = el_span
-            }
-        }
+        const elRev = el.querySelector("span[title]");
         if (elRev) {
-            el.insertBefore(elRev, el.firstChild)
+            el.prepend(elRev);
         }
     }
     item.html = doc.body.innerHTML;
@@ -51,109 +37,86 @@ const makeItem = (url: string, text: string): TxtMiruItem => {
 }
 const getNcode = (url: string) => {
     const m = url.match(/https:\/\/.*\.syosetu\.com\/n([A-Za-z0-9]+)/)
-    return (m ? `N${m[1]}` : url).toUpperCase()
+    return (m ? `N${m[1]}` : url).toLowerCase();
 }
 const getUpdateInfo = async (url: string) => {
     if (!url) {
-        return []
+        return [];
     }
-    const ncode = getNcode(url)
-    if (ncode.length === 0) {
-        return []
+    const ncode = getNcode(url);
+    if (!ncode) return [];
+    const apiUrl = `https://api.syosetu.com/novelapi/api/?out=jsonp&ncode=${ncode}&callback=callback`;
+    try {
+        const response = await fetchJsonp(apiUrl);
+        return await response.json();
+    } catch {
+        return [];
     }
-    url = `https://api.syosetu.com/novelapi/api/?out=jsonp&ncode=${ncode}&callback=callback`
-    return await fetchJsonp(url, {})
-        .then(async response => await response.json())
 }
 
 export class Narou extends TxtMiruSitePlugin {
     Match = (url: string) => /https:\/\/.*\.syosetu\.com/.test(url);
     GetDocument = async (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem | null> =>
-        this.TryFetch(txtMiru, url, {
+        TryFetchNoScriptDocument(txtMiru, url, {
             charset: "UTF-8",
-            cookie: (db.setting[DB_FILEDS.OVER18] === "yes") ? "over18=yes" : ""
-        },
-            async (fetchOpt: RequestInit, reqUrl: string) =>
-                fetch(reqUrl, fetchOpt)
-                    .then(TxtMiruLib.ValidateTextResponse)
-                    .then(text => makeItem(url, text))
-                    .catch(err => checkFetchAbortError(err, url))
+            cookie: (db.setting[Shared.DB.OVER18] === "yes") ? "over18=yes" : ""
+        }, (doc: Document) => makeItem(url, doc)
         );
     GetInfo = async (_: TxtMiru, url: string | string[], callback: ((urls: string[]) => void) | null = null): Promise<SitePluginInfo[] | null> => {
-        if (Array.isArray(url)) {
-            let results: SitePluginInfo[] = []
-            let requests: string[] = []
-            let itemList: string[] = []
-            const addItem = async () => {
-                callback?.(itemList)
-                for (const item of await getUpdateInfo(requests.join("-"))) {
-                    if (item.ncode) {
-                        results.push({
-                            url: item.ncode.toUpperCase(),
-                            max_page: item.novel_type === 2/*短編*/ ? -1 : item.general_all_no,
-                            name: item.title,
-                            author: item.writer
-                        })
-                    }
-                }
-            }
-            for (const u of url) {
-                if (this.Match(u)) {
-                    itemList.push(u)
-                    requests.push(getNcode(u))
-                    if (requests.length > 10) {
-                        await addItem()
-                        requests = []
-                        itemList = []
-                    }
-                }
-            }
-            if (requests.length > 0) {
-                await addItem()
-            }
-            const out_results: SitePluginInfo[] = []
-            const resultMap = new Map(results.map(r => [r.url, r]))
-            for (const u of url) {
-                const item = resultMap.get(getNcode(u))
-                if (item) {
-                    out_results.push({
-                        url: appendSlash(u),
-                        max_page: item.max_page,
-                        name: item.name,
-                        author: item.author
-                    })
-                }
-            }
-            return out_results
-        } else if (this.Match(url)) {
-            callback?.([url])
-            const ncode = getNcode(url)
-            for (const item of await getUpdateInfo(url)) {
-                if (item.ncode && ncode === item.ncode.toUpperCase()) {
-                    return [{
-                        url: appendSlash(url),
-                        max_page: item.general_all_no,
-                        name: item.title,
-                        author: item.writer
-                    }]
-                }
+        const urls = Array.isArray(url) ? url : [url];
+        const targetUrls = urls.filter(u => this.Match(u));
+        if (targetUrls.length === 0) return null;
+        let allResults: SitePluginInfo[] = [];
+        const chunkSize = 10;
+        // 10件ずつまとめて処理
+        for (let i = 0; i < targetUrls.length; i += chunkSize) {
+            const chunk = targetUrls.slice(i, i + chunkSize);
+            callback?.(chunk); // 進捗通知
+
+            const ncodes = chunk.map(u => getNcode(u)).join("-");
+            const apiData = await getUpdateInfo(ncodes);
+
+            for (const item of apiData) {
+                if (!item.ncode) continue;
+                allResults.push({
+                    url: item.ncode.toLowerCase(),
+                    max_page: item.novel_type === 2/*短編*/ ? -1 : item.general_all_no,
+                    name: item.title,
+                    author: item.writer
+                });
             }
         }
-        return null
+
+        // 入力URLの順序に従ってマッピング
+        const resultMap = new Map(allResults.map(r => [r.url, r]));
+        return urls.map(u => {
+            const info = resultMap.get(getNcode(u));
+            if (!info) return null;
+            return {
+                ...info,
+                url: Shared.appendSlash(u)
+            };
+        }).filter((n): n is SitePluginInfo => n !== null);
     }
     GetPageNo = async (_txtMiru: TxtMiru, url: string): Promise<{ url: string, page_no: number, index_url: string } | null> => {
-        if (this.Match(url)) {
-            url = appendSlash(url)
-            const m = url.match(/(https:\/\/.*\.syosetu\.com\/n[A-Za-z0-9]+)\/([0-9]+)/)
-            if (m) {
-                const pageNo = parseInt(m[2]) | 0
-                const indexUrl = appendSlash(m[1])
-                return { url: url, page_no: pageNo, index_url: indexUrl }
-            } else if (/https:\/\/.*\.syosetu\.com\/n[A-Za-z0-9]+\/$/.test(url)) {
-                return { url: url, page_no: 0, index_url: url }
-            }
+        if (!this.Match(url)) {
+            return null;
         }
-        return null
+        url = Shared.appendSlash(url);
+        const m = url.match(ReNovelPage);
+        if (m) {
+            const pageNo = parseInt(m[2]) | 0;
+            const indexUrl = Shared.appendSlash(m[1]);
+            return { url, page_no: pageNo, index_url: indexUrl };
+        } else if (ReNovelIndexPage.test(url)) {
+            return { url, page_no: 0, index_url: url };
+        }
+        return null;
     }
     Name = () => "小説家になろう";
 }
+
+/** @deprecated テスト専用。他ファイルで使用禁止。 */
+export const Tests = {
+    makeItem, getNcode, getUpdateInfo
+};

@@ -4,10 +4,40 @@
     "module": "ESNext",
     "noEmit": true,
     "strict": true,
-    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@features/*": [
+        "./src/features/*"
+      ],
+      "@features": [
+        "./src/features/index"
+      ],
+      "@shared/*": [
+        "./src/shared/*"
+      ],
+      "@shared": [
+        "./src/shared/index"
+      ],
+      "@components/*": [
+        "./src/components/*"
+      ],
+      "@components": [
+        "./src/components/index"
+      ],
+    }
   },
-  "include": ["src/**/*.ts", "declarations.d.ts"]
+  "include": [
+    "src/**/*.ts",
+    "declarations.d.ts"
+  ]
 }

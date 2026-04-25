@@ -61,7 +61,7 @@ const totext = (html: string) => html.replace(/&/g, "&amp;").replace(/</g, "&lt;
 const customCount = (str: string) => {
     // 正規表現: ひらがな、カタカナ、ー、・、…、全角スペース
     return Array.from(totext(str)).length * (isNarouRubyText(str) ? 1 : 2);
-}
+};
 
 
 type ItemType = "text" | "ruby" | "ruby_rb" | "ruby-start" | "tag" | "nop";
@@ -77,14 +77,14 @@ const build = (lineItem: LineItem) => {
     for (const item of lineItem) {
         if (item.type === "text") {
             htmlArr.push(totext(item.text));
-        } else if (item.type === "ruby" && lineItem[item.start || 0]) {
-            htmlArr.push(`<ruby>${lineItem[item.start || 0].text}<rt>${item.text}</rt></ruby>`);
+        } else if (item.type === "ruby" && lineItem[item.start ?? 0]) {
+            htmlArr.push(`<ruby>${lineItem[item.start ?? 0].text}<rt>${item.text}</rt></ruby>`);
         } else if (item.type === "tag") {
             htmlArr.push(item.text);
         }
     }
     return htmlArr.join("");
-}
+};
 
 const rubyStartToText = (lineItem: LineItem, index: number) => {
     if (index >= 0 && lineItem[index] && lineItem[index].type === "ruby-start") {
@@ -92,7 +92,19 @@ const rubyStartToText = (lineItem: LineItem, index: number) => {
     }
 };
 
-const removeSpcae = (text: string) => text = text.replace(/[ 　].*$/, "");
+const setMax10character = (lineItem: LineItem, index: number) : number => {
+    if (totext(lineItem[index].text).length > 10) {
+        rubyStartToText(lineItem, index - 1);
+        // 後ろの１０文字分にルビがかかります。
+        const ruby_base = lineItem[index].text;
+        lineItem[index].text = ruby_base.slice(0, -10);
+        lineItem.push({ type: "text", text: ruby_base.slice(-10) });
+        return lineItem.length - 1;
+    }
+    return index;
+};
+
+const removeSpace = (text: string) => text = text.replace(/[ 　].*$/, "");
 
 const RE_TAG = /^<(.*)\|(.*)>$/;
 const RE_HAS_SPACE = /[　 ]/;
@@ -107,16 +119,6 @@ export const parse = (src: string): LineItem[] => {
     for (const line of src.split(/\n/)) {
         let rubyStartIndex = -1;
         const lineItem: LineItem = [];
-        const setMax10character = () => {
-            if (totext(lineItem[rubyStartIndex].text).length > 10) {
-                rubyStartToText(lineItem, rubyStartIndex - 1);
-                // 後ろの１０文字分にルビがかかります。
-                const ruby_base = lineItem[rubyStartIndex].text;
-                lineItem[rubyStartIndex].text = ruby_base.slice(0, -10);
-                lineItem.push({ type: "text", text: ruby_base.slice(-10) });
-                rubyStartIndex = lineItem.length - 1;
-            }
-        }
         // 内部関数：スペースによるルビ分割処理をひとまとめに
         // rubyStartIndex を直接書き換える「このパース専用」の特殊ツール
         const splitRubyBySpace = (inputRubyText: string, splitType: number): [string, "ruby"] => {
@@ -171,8 +173,7 @@ export const parse = (src: string): LineItem[] => {
                 if (r) {
                     preItem.text = r[1];
                     lineItem.push({ type: "text", text: r[2] })
-                    rubyStartIndex = lineItem.length - 1
-                    setMax10character()
+                    rubyStartIndex = setMax10character(lineItem, lineItem.length - 1);
                     return [text, "ruby"];
                 }
             }
@@ -199,7 +200,7 @@ export const parse = (src: string): LineItem[] => {
                 [text, itemType] = splitRuby(text);
             }
             if (itemType === "ruby") {
-                setMax10character();
+                rubyStartIndex = setMax10character(lineItem, rubyStartIndex);
             }
             return [text, itemType];
         }
@@ -218,7 +219,7 @@ export const parse = (src: string): LineItem[] => {
                 } else if (rubyStartIndex >= 0) {
                     [text, itemType] = downgradeSpRubyToText(text);
                     if (itemType === "ruby" && /^《.*[）\)]$/.test(target)) {
-                        text = removeSpcae(text); // バグ再現用
+                        text = removeSpace(text); // バグ再現用
                     }
                 } else if (lineItem.length > 0) {
                     if (isNarouRubyText(text) && !RE_START_SPACE.test(text)) {
@@ -257,7 +258,7 @@ export const parse = (src: string): LineItem[] => {
                     if (rubyStartIndex >= 0) {
                         [text, itemType] = downgradeSpRubyToText(text);
                         if (itemType === "ruby") {
-                            text = removeSpcae(text); // バグ再現用
+                            text = removeSpace(text); // バグ再現用
                         }
                     } else if (lineItem.length > 0) {
                         [text, itemType] = autoDetectRubyBase(text)

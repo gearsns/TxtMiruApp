@@ -25,7 +25,8 @@ export default defineConfig(({ mode }) => {
               .replace(/\\n/g, '')         // 改行を消す
               .replace(/\s{2,}/g, ' ')     // 2つ以上の空白を1つに
               .replace(/>\s+</g, '><')    // タグ間の空白を消す
-              .replace(/__PACKAGE_VERSION__/g, pkg.version);
+              .replace(/__PACKAGE_VERSION__/g, pkg.version)
+              .replace(/__BUILD_DATE__/g, new Date().toLocaleString('ja-JP'));
             return { code: minified };
           }
         }
@@ -98,10 +99,21 @@ export default defineConfig(({ mode }) => {
         }
       }
     },
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+        '@features': path.resolve(__dirname, './src/features'),
+        '@shared': path.resolve(__dirname, './src/shared'),
+        '@components': path.resolve(__dirname, './src/components'),
+      },
+    },
     define: {
       // JS内で使用できるグローバル変数を定義
       __BUILD_DATE__: JSON.stringify(new Date().toLocaleString('ja-JP')),
       'import.meta.env.PACKAGE_VERSION': JSON.stringify(pkg.version),
+      'import.meta.env.APP_DESCRIPTION': JSON.stringify(pkg.description),
+      'import.meta.env.APP_TITLE': JSON.stringify(pkg.appConfig.title),
+      'import.meta.env.APP_FULL_TITLE': JSON.stringify(`${pkg.appConfig.title} ${pkg.version} - ${pkg.appConfig.shortDescription} -`),
     },
     test: {
       // ブラウザ環境をシミュレート
