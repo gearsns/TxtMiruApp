@@ -9,7 +9,7 @@ const ReNovelIndex = /(https:\/\/kakuyomu\.jp\/works\/.*?)\//;
 const ReNovelPage = /(https:\/\/kakuyomu\.jp\/works\/.*?)\/(episodes\/.*)\/$/;
 const ReNovelIndexPage = /https:\/\/kakuyomu\.jp\/works\/[^\/]+\/$/;
 
-interface SubTitile {
+interface SubTitle {
     subtitle: string
     href: string
     index: number
@@ -21,7 +21,7 @@ interface TocType {
     title: string
     author: string
     story: string
-    subtitles: SubTitile[]
+    subtitles: SubTitle[]
 }
 
 const GetToc = (indexUrl: string, doc: Document) => {
@@ -43,21 +43,19 @@ const GetToc = (indexUrl: string, doc: Document) => {
         const workId = indexUrl.match(/works\/([^/?#]+)/)?.[1] || "";
         // ROOT_QUERYから該当するworkの参照（__ref）を探す
         const rootQuery = apolloState.ROOT_QUERY;
-        const workRefKey = Object.keys(rootQuery).find(k => k.startsWith(`work({"id":"${workId}"}`));
+        const workRefKey = Object.keys(rootQuery).find(k => k.includes(`work({"id":"${workId}"}`));
+        if (!workRefKey) return toc;
         const topWorkId = rootQuery[workRefKey || ""]?.__ref;
         const topWork = apolloState[topWorkId || ""];
         if (!topWork) return toc;
         // 基本情報の抽出
         const authorName = apolloState[topWork.author?.__ref]?.activityName || "";
-        const tocData: TocType = {
-            title: topWork.title || "",
-            author: authorName,
-            story: `${topWork.catchphrase || ""}\n${topWork.introduction || ""}`.trim(),
-            subtitles: []
-        };
+        toc.title = topWork.title || "";
+        toc.author = authorName;
+        toc.story = `${topWork.catchphrase || ""}\n${topWork.introduction || ""}`.trim();
         // 目次データのフラット化
         let globalIndex = 0;
-        tocData.subtitles = (topWork.tableOfContentsV2 || []).flatMap((tocRef: any) => {
+        toc.subtitles = (topWork.tableOfContentsV2 || []).flatMap((tocRef: any) => {
             const subToc = apolloState[tocRef.__ref];
             const chapterTitle = apolloState[subToc?.chapter?.__ref]?.title || "";
 
@@ -70,20 +68,54 @@ const GetToc = (indexUrl: string, doc: Document) => {
                     href: `/works/${workId}/episodes/${episode?.id}`,
                     index: globalIndex,
                     subdate: episode?.publishedAt || "",
-                    subupdate: "",
+                    subupdate: episode?.lastPublishedAt || "",
                     chapter: chapterTitle,
                 };
             });
         });
-        return tocData;
+        return toc;
     } catch (e) {
         console.log(e);
         return toc;
     }
 }
 
-const makeItem = (url: string, text: string) => {
-    const doc = createScriptFreeDocument(text);
+const makeItem = (url: string, rawText: string) => {
+    const sourceText = (() => {
+        const isIndexPageWithData = rawText.includes("__NEXT_DATA__") && /works\/[^\/]+$/.test(url);
+        if (!isIndexPageWithData) return rawText;
+        const parser = new DOMParser(); // scriptありのDocument
+        const tocDoc = parser.parseFromString(rawText, "text/html");
+        const toc = GetToc(url, tocDoc);
+        if (!toc.subtitles?.length) {
+            return rawText;
+        }
+        // Indexページが最初の数件しか目次を表示しないのでページ再生成
+        let preChapter = "";
+        const subtitlesHtml = toc.subtitles.map((sub: SubTitle) => {
+            const html = (sub.chapter && preChapter !== sub.chapter)
+                ? `<li class="chapter">${Shared.escapeHtml(sub.chapter)}</li>`
+                : "";
+            preChapter = sub.chapter;
+            const formattedDate = TxtMiruLib.formatDateString(sub.subupdate || sub.subdate);
+            const strDate = formattedDate
+                ? `<span class="sideways_date">${formattedDate}</span>`
+                : "";
+            return `${html}<li><a href="${sub.href}">${Shared.escapeHtml(sub.subtitle || "")}</a>${strDate}</li>`;
+        }).join("");
+        const firstSub = toc.subtitles[0];
+        const title = Shared.escapeHtml(toc.title);
+        return `<title>${title}</title>` +
+            `<h1 class='title'>${title}</h1>` +
+            `<h2 class='author'>${Shared.escapeHtml(toc.author)}</h2>` +
+            `<div><p>${Shared.escapeHtml(toc.story).replace(/\n/g, "<br>")}</p></div>` +
+            `<ul class="subtitles">${subtitlesHtml}</ul>` +
+            `<div>` +
+            `<a class='txtmiru_pager' id='TxtMiruNextPage' href='${firstSub.href}'>次へ （${Shared.escapeHtml(firstSub.subtitle.trim())}）</a>` +
+            `</div>`
+            ;
+    })();
+    const doc = createScriptFreeDocument(sourceText); // scriptなしのDocument
     const item: TxtMiruItem = {
         url,
         className: "Kakuyomu",
@@ -92,38 +124,6 @@ const makeItem = (url: string, text: string) => {
         "prev-episode-text": "前へ",
         "episode-index-text": "カクヨム",
         "episode-index": KAKUYOMU
-    }
-    if (text.includes("__NEXT_DATA__") && /works\/\d+$/.test(url)) {
-        const parser = new DOMParser();
-        const tocDoc = parser.parseFromString(text, "text/html");
-        const toc = GetToc(url, tocDoc);
-        if (toc.subtitles?.length > 0) {
-            // Indexページが最初の数件しか目次を表示しないのでページ再生成
-            let preChapter = "";
-            const subtitlesHtml = toc.subtitles.map((sub: any) => {
-                let html = "";
-                if (sub.chapter && preChapter !== sub.chapter) {
-                    html += `<li class="chapter">${Shared.escapeHtml(sub.chapter)}</li>`;
-                }
-                preChapter = sub.chapter;
-                const ret = TxtMiruLib.formatDateString(sub.subupdate || sub.subdate);
-                const strDate = ret
-                    ? ""
-                    : `<span class="sideways_date">${ret}</span>`;
-                html += `<li><a href="${sub.href}">${Shared.escapeHtml(sub.subtitle || "")}</a>${strDate}</li>`;
-                return html;
-            }).join("");
-            const firstSub = toc.subtitles[0];
-            doc.body.innerHTML =
-                `<h1 class='title'>${Shared.escapeHtml(toc.title)}</h1>` +
-                `<h2 class='author'>${Shared.escapeHtml(toc.author)}</h2>` +
-                `<div><p>${Shared.escapeHtml(toc.story).replace(/\n/g, "<br>")}</p></div>` +
-                `<ul class="subtitles">${subtitlesHtml}</ul>` +
-                `<div>` +
-                `<a class='txtmiru_pager' id='TxtMiruNextPage' href='${firstSub.href}'>次へ （${Shared.escapeHtml(firstSub.subtitle.trim())}）</a>` +
-                `</div>`
-                ;
-        }
     }
     KumihanMod(url, doc);
     const ignorePatterns = /^(新着おすすめレビュー|おすすめレビュー|関連小説)$/;
@@ -150,7 +150,7 @@ const makeItem = (url: string, text: string) => {
         return null;
     });
     item.html = title + doc.body.innerHTML;
-    return item
+    return item;
 }
 
 export class Kakuyomu extends TxtMiruSitePlugin {
@@ -174,17 +174,17 @@ export class Kakuyomu extends TxtMiruSitePlugin {
                 continue;
             }
             callback?.([url]);
-            const index_url = m[1];
-            const doc = await getHtmlDocument({ url: index_url, charset: "UTF-8" }, txtMiru);
-            const toc = GetToc(index_url, doc);
+            const indexUrl = m[1];
+            const doc = await getHtmlDocument({ url: indexUrl, charset: "UTF-8" }, txtMiru);
+            const toc = GetToc(indexUrl, doc);
             const author = toc.author || doc.getElementById("workAuthor-activityName")?.textContent || ""
-            const title = toc.title || doc.getElementById("workTitle")?.textContent || ""
-            const max_page = toc.subtitles.length || doc.getElementsByClassName("widget-toc-episode-titleLabel")?.length || 1
+            const name = toc.title || doc.getElementById("workTitle")?.textContent || ""
+            const maxPage = toc.subtitles.length || doc.getElementsByClassName("widget-toc-episode-titleLabel")?.length || 1
             results.push({
                 url: Shared.removeSlash(url),
-                max_page: max_page,
-                name: title,
-                author: author
+                max_page: maxPage,
+                name,
+                author
             })
         }
         return results

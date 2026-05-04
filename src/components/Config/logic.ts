@@ -1,5 +1,4 @@
 import { DEFAULT_SETTING, Store } from "@/services/storage";
-import { SettingField } from "@/services/storage/types";
 import { CHECK_SETTING_DEFINITIONS, TEXT_SETTING_MAPPING } from "./constants";
 import { ConfigSetting } from "./types";
 
@@ -31,14 +30,20 @@ export const extractSettingsFromUI = (
     isElementChecked: (elementId: string) => boolean,
     getElementValue: (elementId: string) => string
 ) => {
-    const setting: SettingField[] = [];
-    CHECK_SETTING_DEFINITIONS.forEach(item => {
-        const foundEntry = Object.entries(item.list).find(([id]) => isElementChecked(id));
-        setting.push({ id: item.target, value: foundEntry ? foundEntry[1] : item.def });
+    // 1. チェック系の抽出
+    const checkSettings = CHECK_SETTING_DEFINITIONS.map(({ target, list, def }) => {
+        const foundId = Object.keys(list).find(id => isElementChecked(id));
+        return {
+            id: target,
+            value: foundId ? list[foundId] : def
+        };
     });
 
-    for (const [key, value] of Object.entries(TEXT_SETTING_MAPPING)) {
-        setting.push({ id: value, value: getElementValue(key) });
-    }
-    return setting;
+    // 2. テキスト系の抽出
+    const textSettings = Object.entries(TEXT_SETTING_MAPPING).map(([elementId, settingKey]) => ({
+        id: settingKey,
+        value: getElementValue(elementId)
+    }));
+
+    return [...checkSettings, ...textSettings];
 };

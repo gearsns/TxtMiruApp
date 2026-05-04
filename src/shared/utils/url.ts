@@ -29,7 +29,7 @@ export const getNovelUrl = () => new URLSearchParams(location.search).get('url')
 
 export const normalizeSyosetuUrl = (url: string) => {
     if (/^n/.test(url)) {
-        url = `https://ncode.syosetu.com/${url}`;
+        url = `https://ncode.syosetu.com/${url}/`;
     }
     return url;
 };

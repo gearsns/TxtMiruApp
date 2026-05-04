@@ -9,6 +9,8 @@ import { convertRuby } from "./utils/ruby";
 export * from "./utils/dom";
 export * from "./formatter/date"
 
+const separatorRegex = /^(?=[―\-])[ 　―\-]+$/;
+
 export const KumihanMod = (url: string, doc: Document): void => {
     const nodes = doc.body.childNodes;
     convertRuby(doc);
@@ -17,20 +19,20 @@ export const KumihanMod = (url: string, doc: Document): void => {
     counterJapaneseHyphenation(doc);
     convertElementsURL(doc, url);
 
-    Array.from(doc.getElementsByTagName("P")).forEach(el_p => {
-        if (/^(?=[―\-])[ 　―\-]+$/.test(el_p.innerHTML)) {
+    doc.querySelectorAll("p").forEach(el_p => {
+        if (separatorRegex.test(el_p.textContent || "")) {
             el_p.innerHTML = "<hr>";
         }
     });
 
-    Array.from(doc.getElementsByTagName("IMG")).forEach(el_img => {
-        el_img.setAttribute("width", "auto");
-        el_img.setAttribute("height", "auto");
+    doc.querySelectorAll("img").forEach(img => {
+        img.setAttribute("width", "auto");
+        img.setAttribute("height", "auto");
     });
 };
 
 
-export const TryFetchNoScriptDocument = async (txtMiru: TxtMiruDocParam, url: string, url_params: Record<string, string>, callback: Function): Promise<TxtMiruItem> => {
+export const TryFetchNoScriptDocument = async (txtMiru: TxtMiruDocParam, url: string, url_params: Record<string, string>, callback: (doc: Document) => TxtMiruItem): Promise<TxtMiruItem> => {
     return TryFetch(txtMiru, url, url_params,
         async (fetchOpt: RequestInit, reqUrl: string) => {
             try {

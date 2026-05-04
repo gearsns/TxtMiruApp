@@ -9,33 +9,31 @@ export const cacheFiles = new CacheFiles(10);
 
 export const executeCacheFlow = async (url: string) => {
     const { menu } = elements;
-    if (backgroundAbortController) {
+    url = removeHash(url);
+    if (backgroundAbortController || cacheFiles.Get(url)) {
         return;
     }
-    url = removeHash(url);
-    if (!cacheFiles.Get(url)) {
-        menu.setCachedStatus("loading");
-        backgroundAbortController = new AbortController();
-        const loadding = {
-            cache: localCacheList,
-            signal: backgroundAbortController.signal,
-        };
-        try {
-            const item = await TxtMiruSiteManager.GetDocument(loadding, url);
-            if (item === null) {
-                menu.setCachedStatus();
-                return;
-            }
-            if (!item.nocache && !item.cancel) {
-                item.url = url;
-                cacheFiles.Set(item);
-            }
-        } catch {
-        } finally {
-            backgroundAbortController = null;
-        };
-        updateIcon(url);
-    }
+    menu.setCachedStatus("loading");
+    backgroundAbortController = new AbortController();
+    const loading = {
+        cache: localCacheList,
+        signal: backgroundAbortController.signal,
+    };
+    try {
+        const item = await TxtMiruSiteManager.GetDocument(loading, url);
+        if (item === null) {
+            menu.setCachedStatus();
+            return;
+        }
+        if (!item.nocache && !item.cancel) {
+            item.url = url;
+            cacheFiles.Set(item);
+            updateIcon(url);
+        }
+    } catch {
+    } finally {
+        backgroundAbortController = null;
+    };
 }
 
 export const updateIcon = (url: string | null,) => {

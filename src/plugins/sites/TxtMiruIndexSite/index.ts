@@ -6,22 +6,24 @@ import globalHistoryHtml from './history.html?raw'
 import localHistoryHtml from './history-local.html?raw'
 import { HistoryItem } from '@/types/history';
 
+type HistoryItemBase = Omit<HistoryItem, 'suffix'>;
 /**
  * 履歴表示用データの取得
  */
-const getHistoryViewData = (historyJson?: string, indexItem?: { url: string, scrollPos: string, name: string }) => {
+const getHistoryViewData = (historyJson?: string, indexItem?: HistoryItemBase): HistoryItem[] => {
     if (!historyJson) return [];
 
     try {
-        const parsed = JSON.parse(historyJson);
-        const list = parsed
-            .filter((item: any) => item.name && item.name !== "undefined")
-            .map((item: any, i: number) => ({
+        const isEntryValid = (item: HistoryItemBase) => item && item.name && item.name !== "undefined";
+        const parsed = JSON.parse(historyJson) as HistoryItemBase[];
+        const list: HistoryItem[] = parsed
+            .filter(isEntryValid)
+            .map((item: HistoryItemBase, i: number) => ({
                 ...item,
                 suffix: i + 1
             }));
 
-        if (indexItem && indexItem.name && indexItem.name !== "undefined") {
+        if (indexItem && isEntryValid(indexItem)) {
             list.push({ ...indexItem, suffix: "Index" });
         }
         return list;
@@ -45,16 +47,17 @@ const replaceHistory = (baseHtml: string, listHtml: string, items: HistoryItem[]
 
 export class TxtMiruIndexSite extends TxtMiruSitePlugin {
     Match = (url: string) => url === "TxtMiruIndex";
-    GetDocument = async (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem> => {
+    GetDocument = async (_txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem> => {
+        const title = import.meta.env.APP_FULL_TITLE;
         const item: TxtMiruItem = {
             className: "contents",
             url,
-            title: import.meta.env.APP_FULL_TITLE,
-            "episode-index-text": import.meta.env.APP_FULL_TITLE,
+            title,
+            "episode-index-text": title,
             "episode-index": "./index.html",
-            "prev-episode-text": import.meta.env.APP_FULL_TITLE,
+            "prev-episode-text": title,
             "prev-episode": "./index.html",
-            "next-episode-text": import.meta.env.APP_FULL_TITLE,
+            "next-episode-text": title,
             "next-episode": "./index.html",
         };
 

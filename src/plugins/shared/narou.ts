@@ -74,13 +74,13 @@ type LineItem = LineItemNode[];
 
 const build = (lineItem: LineItem) => {
     const htmlArr = [];
-    for (const item of lineItem) {
-        if (item.type === "text") {
-            htmlArr.push(totext(item.text));
-        } else if (item.type === "ruby" && lineItem[item.start ?? 0]) {
-            htmlArr.push(`<ruby>${lineItem[item.start ?? 0].text}<rt>${item.text}</rt></ruby>`);
-        } else if (item.type === "tag") {
-            htmlArr.push(item.text);
+    for (const { type, text, start } of lineItem) {
+        if (type === "text") {
+            htmlArr.push(totext(text));
+        } else if (type === "ruby" && lineItem[start ?? 0]) {
+            htmlArr.push(`<ruby>${lineItem[start ?? 0].text}<rt>${text}</rt></ruby>`);
+        } else if (type === "tag") {
+            htmlArr.push(text);
         }
     }
     return htmlArr.join("");
@@ -92,7 +92,7 @@ const rubyStartToText = (lineItem: LineItem, index: number) => {
     }
 };
 
-const setMax10character = (lineItem: LineItem, index: number) : number => {
+const setMax10character = (lineItem: LineItem, index: number): number => {
     if (totext(lineItem[index].text).length > 10) {
         rubyStartToText(lineItem, index - 1);
         // 後ろの１０文字分にルビがかかります。
@@ -113,6 +113,7 @@ const RE_SPLIT_SPACE = /^(.*)([　 ])(.*)$/;
 const RE_RUBY_BASE_AUTO = /(.*?)((?:[一-龠仝ヶ]|[-_@0-9a-zA-Z\[\]\^`]|[—―＿＠０-９Ａ-Ｚａ-ｚ])+)$/;
 const RE_RUBY_TYPE1 = /^《(.*?)[）\)》]$/;
 const RE_RUBY_TYPE2 = /^[（\()](.*?)[）\)》]$/;
+const RE_DOUBLE_SPACE = /^(.*[　 ])(.*)([　 ])(.*)$/;
 
 export const parse = (src: string): LineItem[] => {
     const ret: LineItem[] = [];
@@ -124,7 +125,7 @@ export const parse = (src: string): LineItem[] => {
         const splitRubyBySpace = (inputRubyText: string, splitType: number): [string, "ruby"] => {
             let r: RegExpMatchArray | null;
             const currentBase = lineItem[rubyStartIndex].text;
-            if (r = currentBase.match(/^(.*[　 ])(.*)([　 ])(.*)$/)) {
+            if (r = currentBase.match(RE_DOUBLE_SPACE)) {
                 // スペースを 一つ 含む場合、分割してルビが振られます。
                 const [_, orgText, rubyBase1, rubyBase2] = r;
                 if (r = inputRubyText.match(RE_SPLIT_SPACE)) {
@@ -241,7 +242,7 @@ export const parse = (src: string): LineItem[] => {
                     if (!hasNarouTag) {
                         text = totext(text);
                     }
-                    lineItem.push({ type: "ruby", text: text, start: rubyStartIndex })
+                    lineItem.push({ type: "ruby", text, start: rubyStartIndex })
                 } else {
                     lineItem.push({ type: "text", text: target })
                 }
@@ -272,17 +273,17 @@ export const parse = (src: string): LineItem[] => {
                     itemType = "text";
                 }
                 if (itemType === "ruby") {
-                    lineItem.push({ type: "ruby", text: totext(text), start: rubyStartIndex })
+                    lineItem.push({ type: "ruby", text: totext(text), start: rubyStartIndex });
                 } else {
-                    lineItem.push({ type: "text", text: target })
+                    lineItem.push({ type: "text", text: target });
                 }
                 rubyStartIndex = -1;
             } else if (/^[｜\|]/.test(target)) {
                 downgradeRubyToText();
-                rubyStartIndex = lineItem.length
-                lineItem.push({ type: "ruby-start", text: target })
+                rubyStartIndex = lineItem.length;
+                lineItem.push({ type: "ruby-start", text: target });
             } else if (target?.length > 0) {
-                lineItem.push({ type: "text", text: target })
+                lineItem.push({ type: "text", text: target });
             }
         }
         downgradeRubyToText();

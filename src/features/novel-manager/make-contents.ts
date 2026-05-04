@@ -21,13 +21,14 @@ export const initItem = (item: TxtMiruItem) => {
             setIndexHtml(id);
         }
     }
+    if (item.html === "undefined") {
+        console.error(item.html);
+        EPISODE_ATTR_LIST.forEach(n => setIndexHtml(n));
+        return;
+    }
     setEpisodeText("next-episode", "次へ");
     setEpisodeText("prev-episode", "前へ");
     setEpisodeText("episode-index", "目次へ");
-    if (item.html === "undefined") {
-        console.log(item.html);
-        EPISODE_ATTR_LIST.forEach(n => setIndexHtml(n));
-    }
 };
 
 export const buildEpisodeAnchor = (prefix: "prev" | "next", item: TxtMiruItem): string | undefined => {

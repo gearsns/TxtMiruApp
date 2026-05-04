@@ -4,7 +4,7 @@ import { parseHtml } from '../html-parser';
 import { TxtMiruLib } from '../shared/TxtMiruLib';
 const { setItemEpisodeText } = TxtMiruLib;
 
-const loadImg = async (file: File): Promise<string> => new Promise((resolve, reject) => {
+const loadImg = async (file: File | Blob): Promise<string> => new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = reject;
@@ -16,7 +16,8 @@ const convertToHtml = async (array: ArrayBuffer, cache: TxtMiruItem): Promise<st
     if (cache.narou) {
         const { narou2html } = await import('../shared/narou');
         return narou2html(html);
-    } else if (cache.aozora) {
+    }
+    if (cache.aozora) {
         const { AozoraText2Html } = await import('../shared/aozora');
         return AozoraText2Html(html);
     }
@@ -63,7 +64,7 @@ export class TxtMiruCacheSite extends TxtMiruSitePlugin {
     GetDocument = async (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem> => {
         const index_url = normalizeUrl(url);
         const cache: TxtMiruItem | undefined = txtMiru.cache?.Get(index_url);
-        if (!cache) return { url: url, html: "Not found" };
+        if (!cache) return { url, html: "Not found" };
 
         if (!cache.html) {
             if (cache.zipEntry) {
@@ -80,17 +81,18 @@ export class TxtMiruCacheSite extends TxtMiruSitePlugin {
         const [item, doc] = parseHtml(url, normalizeUrl(url)/*urlが変更されているかもなのでIndelUrl再取得*/, `<div class="main_text">${cache.html}</div>`, "TxtMiruCache Aozora");
         // イメージファイルは、blobで読んでおく
         for (const el of doc.getElementsByTagName("IMG")) {
-            const cacheImg = txtMiru.cache?.Get(el.getAttribute("src") as string)
-            if (cacheImg) {
-                try {
-                    if (cacheImg.zipEntry) {
-                        (el as HTMLImageElement).src = URL.createObjectURL(await cacheImg.zipEntry.async("blob"));
-                    } else if (cacheImg.file) {
-                        (el as HTMLImageElement).src = await loadImg(cacheImg.file);
-                    }
-                } catch (error) {
-                    console.log(error);
+            const cacheImg = txtMiru.cache?.Get(el.getAttribute("src") as string);
+            if (!cacheImg) {
+                continue;
+            }
+            try {
+                if (cacheImg.zipEntry) {
+                    (el as HTMLImageElement).src = await loadImg(await cacheImg.zipEntry.async("blob"));
+                } else if (cacheImg.file) {
+                    (el as HTMLImageElement).src = await loadImg(cacheImg.file);
                 }
+            } catch (error) {
+                console.log(error);
             }
         }
         item.html = doc.body.innerHTML;

@@ -1,16 +1,18 @@
+import { splitStr } from "../utils/logic";
+
+const RE_DAKUTEN = /(.\u3099)/;
+const DAKUTEN_CLASS = 'dakuten';
+
 const escape_mark = (node: ChildNode): void => {
     if (node.nodeType === Node.TEXT_NODE && node.nodeValue) {
         node.nodeValue = node.nodeValue
-            .replace(/([\.・･]+)/gi, (all, text: string) => {
-                if (text.length >= 2) {
-                    const divisor = text.length % 3 === 0 ? 3 : (text.length % 2 === 0 ? 2 : 3);
-                    return "…".repeat(Math.floor(text.length / divisor));
-                }
-                return all;
+            .replace(/[\.・･]{2,}/g, (all) => {
+                const divisor = all.length % 3 === 0 ? 3 : (all.length % 2 === 0 ? 2 : 3);
+                return "…".repeat(Math.floor(all.length / divisor));
             })
             .replace(/[─━]/g, "―")
             .replace(/\-+\-/g, (all) => "―".repeat(Math.floor(all.length / 2)))
-            .replace(/[―ー–－−ｰ—\-][―ー–－−ｰ—\-]+/g, (all) => {
+            .replace(/[―ー–－−ｰ—\-]{2,}/g, (all) => {
                 let l = 0;
                 for (const text of all.split("")) {
                     l += /[−ｰ—\-]/.test(text) ? 1 : 2;
@@ -18,13 +20,35 @@ const escape_mark = (node: ChildNode): void => {
                 return "―".repeat(Math.floor(l / 2) + 1);
             })
             .replace(/゛/g, "\u3099")
+            .replace(/゜/g, "\u309A")
             .replace(/／＼/g, "\u3033\u3035")
             .replace(/／″＼/g, "\u3034\u3035")
-            .replace(/゜/g, "\u209A")
-            .replace(/[\.]{3}/g, `…`)
-            .replace(/。 *(」|』)/g, (_, p1) => p1)
-            .replace(/[ 　]+(」|』)/g, (_, p1) => p1)
-            .replace(/\((笑)\)/g, (_, p1) => `（${p1}）`);
+            .replace(/[ 　。]+(?=」|』)/g, "")
+            .replace(/\(笑\)/g, "（笑）");
+
+        if (!RE_DAKUTEN.test(node.nodeValue)) return;
+        const parent = node.parentElement;
+        if (!parent) return;
+        const arr = splitStr(node.nodeValue, RE_DAKUTEN);
+        if (arr.length === 0) return;
+        const fragment = document.createDocumentFragment();
+        for (const item of arr) {
+            if (Array.isArray(item)) {
+                const text = item.join("");
+                if (text.length >= 2) {
+                    const elm_dakuten = document.createElement("span");
+                    elm_dakuten.className = DAKUTEN_CLASS;
+                    elm_dakuten.textContent = text.substring(0, text.length - 1);
+                    fragment.appendChild(elm_dakuten);
+                } else {
+                    fragment.appendChild(document.createTextNode(text));
+                }
+            } else {
+                fragment.appendChild(document.createTextNode(item as string));
+            }
+        }
+        parent.insertBefore(fragment, node);
+        parent.removeChild(node);
     } else if (node instanceof Element && node.tagName !== "RT") {
         escapeMarkList(node.childNodes);
     }

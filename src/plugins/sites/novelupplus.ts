@@ -5,6 +5,7 @@ import { getHtmlDocument } from '../shared/utils/network'
 const { TryFetchNoScriptDocument, KumihanMod, setItemEpisodeText } = TxtMiruLib;
 
 const NOVELUPPLUS = "https://novelup.plus/";
+const RE_STORY_BASE = /^(https:\/\/novelup\.plus\/story\/[\d]+)/;
 const ReNovelIndex = /(https:\/\/novelup\.plus\/story\/.*?)\//;
 const ReNovelPage = /(https:\/\/novelup\.plus\/story\/[\d]+)\/([\d]+)\/$/;
 
@@ -19,7 +20,7 @@ const makeItem = (url: string, doc: Document) => {
         "episode-index": NOVELUPPLUS
     };
     KumihanMod(url, doc);
-    const mIndexUrl = url.match(/(https:\/\/novelup\.plus\/story\/[\d]+)/);
+    const mIndexUrl = url.match(RE_STORY_BASE);
     if (mIndexUrl?.[1]) {
         for (const e of doc.getElementsByClassName("storyTitle") as HTMLCollectionOf<HTMLElement>) {
             setItemEpisodeText("episode-index", mIndexUrl[1], e.textContent, item)
@@ -81,7 +82,7 @@ export class NovelupPlus extends TxtMiruSitePlugin {
                 url: Shared.removeSlash(url),
                 max_page: maxPage,
                 name,
-                author: author
+                author
             });
         }
         return results;

@@ -21,7 +21,7 @@ describe('counterJapaneseHyphenation', () => {
         counterJapaneseHyphenation(doc);
 
         // 3. 検証
-        const span = doc.querySelector('span[style*="display:inline-block"]');
+        const span = doc.querySelector('span[style*="display: inline-block"]');
         expect(span).not.toBeNull();
         // 「漢」と「。」が同じspanの中に移動しているか
         expect(span?.textContent).toBe('漢。');
@@ -38,8 +38,21 @@ describe('counterJapaneseHyphenation', () => {
 
         counterJapaneseHyphenation(doc);
 
-        const span = doc.querySelector('span[style*="display:inline-block"]');
+        const span = doc.querySelector('span[style*="display: inline-block"]');
         expect(span?.textContent).toBe('（!!）');
+    });
+
+    it('「tatechuyoko」クラスの前に文字がある場合、それらをspanで囲むこと', () => {
+        doc.body.innerHTML = `
+      <div id="container">
+        でした<span class="tatechuyoko">‼</span>
+      </div>
+    `;
+
+        counterJapaneseHyphenation(doc);
+
+        const span = doc.querySelector('span[style*="display: inline-block"]');
+        expect(span?.textContent).toBe('た‼');
     });
 
     it('禁則文字がない場合は、構造を変化させないこと', () => {
@@ -62,7 +75,7 @@ describe('counterJapaneseHyphenation', () => {
 
         counterJapaneseHyphenation(doc);
 
-        const containerSpan = doc.querySelector('span[style*="display:inline-block"]');
+        const containerSpan = doc.querySelector('span[style*="display: inline-block"]');
         expect(containerSpan?.querySelector('.yakumono_spacing')).not.toBeNull();
     });
 });

@@ -37,7 +37,7 @@ export class Store extends Dexie {
     get setting(): Record<string, any> {
         return this._setting;
     }
-    private get apiConfig(): ApiConfig {
+    private createApiConfig(): ApiConfig {
         return {
             baseUrl: this._setting[Shared.DB.WEBSERVERURL],
             userId: this._setting[Shared.DB.USER_ID]
@@ -55,8 +55,9 @@ export class Store extends Dexie {
         name: string, author: string, url: string,
         curUrl: string, curPage: number, maxPage: number, fetchOpt?: RequestInit
     ): Promise<void> => {
-        (this.apiConfig.userId)
-            ? await Api.addFavorite(this.apiConfig, name, author, url, curUrl, curPage, maxPage, fetchOpt)
+        const config = this.createApiConfig();
+        (config.userId)
+            ? await Api.addFavorite(config, name, author, url, curUrl, curPage, maxPage, fetchOpt)
             : await this.Favorite.add({
                 name,
                 author,
@@ -66,29 +67,35 @@ export class Store extends Dexie {
                 max_page: maxPage
             });
     };
-    getFavoriteList = async (fetchOpt?: RequestInit): Promise<FavoriteField[] | null> => {
-        return (this.apiConfig.userId)
-            ? Api.getFavorites(this.apiConfig, fetchOpt)
-            : this.Favorite.toArray();
+    getFavoriteList = async (fetchOpt?: RequestInit): Promise<FavoriteField[]> => {
+        const config = this.createApiConfig();
+        const list = (config.userId)
+            ? await Api.getFavorites(config, fetchOpt)
+            : await this.Favorite.toArray();
+        return list ?? [];
     };
     getFavoriteByUrl = async (
         url: string, pageNo: number = 0,
         curUrl: string = "", fetchOpt?: RequestInit
-    ): Promise<FavoriteField[] | null> => {
-        return (this.apiConfig.userId)
-            ? Api.getFavoriteByUrl(this.apiConfig, url, pageNo, curUrl, fetchOpt)
-            : this.Favorite.where({ url: url }).toArray();
+    ): Promise<FavoriteField[]> => {
+        const config = this.createApiConfig();
+        const list = (config.userId)
+            ? await Api.getFavoriteByUrl(config, url, pageNo, curUrl, fetchOpt)
+            : await this.Favorite.where({ url }).toArray();
+        return list ?? [];
     };
     setFavorite = async (
         id: number, item: Partial<FavoriteField>, fetchOpt?: RequestInit
     ): Promise<void> => {
-        (this.apiConfig.userId)
-            ? await Api.updateFavorite(this.apiConfig, id, item, fetchOpt)
+        const config = this.createApiConfig();
+        (config.userId)
+            ? await Api.updateFavorite(config, id, item, fetchOpt)
             : await this.Favorite.update(Number(id), item);
     }
     deleteFavorite = async (id: number): Promise<void> => {
-        (this.apiConfig.userId)
-            ? await Api.deleteFavorite(this.apiConfig, id)
+        const config = this.createApiConfig();
+        (config.userId)
+            ? await Api.deleteFavorite(config, id)
             : await this.Favorite.delete(Number(id));
     }
 }

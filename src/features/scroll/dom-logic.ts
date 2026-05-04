@@ -11,17 +11,18 @@ export const cumulativeOffset = (element: HTMLElement | null | undefined) => {
 // 行ごとの座標を取得
 export const retrieveLinesRectsRange = (elem: HTMLElement, left: number, right: number): DOMRect[] => {
     const range = document.createRange();
-    const treeWalker = document.createTreeWalker(elem, NodeFilter.SHOW_TEXT);
+    const iter = document.createNodeIterator(elem, NodeFilter.SHOW_TEXT);
     const results: DOMRect[] = [];
     let node: Node | null;
-    while ((node = treeWalker.nextNode())) {
+    while ((node = iter.nextNode())) {
         const target = node as Text;
-        if (target.parentElement && target.nodeValue && target.ownerDocument && target.nodeValue.trim().length > 0) {
-            range.selectNodeContents(target);
-            for (const item of range.getClientRects()) {
-                if (item.x <= right && item.x + item.width >= left) {
-                    results.push(item);
-                }
+        if (!target.textContent?.trim()) {
+            continue;
+        }
+        range.selectNodeContents(target);
+        for (const item of range.getClientRects()) {
+            if (item.x <= right && item.right >= left) {
+                results.push(item);
             }
         }
     }
@@ -31,7 +32,7 @@ export const retrieveLinesRectsRange = (elem: HTMLElement, left: number, right: 
 export const retrieveLinesRects = (elem: Node): DOMRect[] => {
     const range = document.createRange();
     const results: DOMRect[] = [];
-    const iter = document.createNodeIterator(elem, NodeFilter.SHOW_TEXT);
+    const iter = document.createTreeWalker(elem, NodeFilter.SHOW_TEXT);
     let node: Node | null;
     while ((node = iter.nextNode())) {
         range.selectNodeContents(node);

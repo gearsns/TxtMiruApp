@@ -50,4 +50,14 @@ describe('escapeMarkList', () => {
         escapeMarkList(container.childNodes);
         expect(container.innerHTML).toBe('<div>テスト（笑）<span>』</span></div>');
     });
+
+    it('濁点の変換ができること', () => {
+        container.innerHTML = '<div>テストぁ゛、ぁ\u3099、ぁ\u309A</div>';
+        escapeMarkList(container.childNodes);
+        expect(container.innerHTML).toBe('<div>テスト<span class="dakuten">ぁ</span>、<span class="dakuten">ぁ</span>、ぁ\u309A</div>');
+
+        container.innerHTML = '<div>ぁ゛</div>';
+        escapeMarkList(container.childNodes);
+        expect(container.innerHTML).toBe('<div><span class="dakuten">ぁ</span></div>');
+    });
 });

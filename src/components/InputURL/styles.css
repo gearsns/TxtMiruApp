@@ -1,0 +1,18 @@
+:host {
+  display: flex;
+  place-items: center;
+  box-sizing: border-box;
+  text-align: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.url {
+  width: 80%;
+  max-width: 50em;
+}
+
+dt,
+dd {
+  margin: 0;
+}

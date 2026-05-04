@@ -1,5 +1,5 @@
 import * as Features from '@features';
-import * as Shared from '@shared';
+import { DB, debounce } from '@shared';
 import { db } from './services/storage';
 
 export const bindAppEvents = (state: Features.NovelState, cacheLoadFn: Function) => {
@@ -9,18 +9,18 @@ export const bindAppEvents = (state: Features.NovelState, cacheLoadFn: Function)
         const curUrl = new URL(window.location.toString());
         state.setHistory(curUrl.searchParams.get("url"), document.title);
     }
-    const debouncedSaveScroll = Shared.debounce(
+    const debouncedSaveScroll = debounce(
         saveScrollPosition,
-        () => db.setting[Shared.DB.DELAY_SET_SCROLL_POS_STATE]
+        () => db.setting[DB.DELAY_SET_SCROLL_POS_STATE]
     );
     main.addEventListener("scroll", () => {
-        if (db.setting[Shared.DB.DELAY_SET_SCROLL_POS_STATE] >= 0) {
+        if (db.setting[DB.DELAY_SET_SCROLL_POS_STATE] >= 0) {
             debouncedSaveScroll();
         }
         // プリフェッチ判定ロジック
-        if (state.isPrefetch && db.setting[Shared.DB.PAGE_PREFETCH]) {
+        if (state.isPrefetch && db.setting[DB.PAGE_PREFETCH]) {
             const totalScrollable = main.scrollWidth - main.clientWidth;
-            if (totalScrollable > 0 && (-main.scrollLeft / totalScrollable) > 0.2) {
+            if (totalScrollable > 0 && Math.abs(main.scrollLeft / totalScrollable) > 0.2) {
                 cacheLoadFn();
             }
         }

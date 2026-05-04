@@ -12,13 +12,13 @@ const makeItem = (url: string, doc: Document) => {
     TxtMiruLib.createPager(url, doc, item, (anchor) => {
         const textContent = anchor.textContent?.trim();
         const classlist = anchor.classList;
-        if (textContent === "前へ"
-            || classlist.contains("c-pager__item--before")) {
+        if (textContent === "前へ" || classlist.contains("c-pager__item--before")) {
             return "prev";
-        } else if (textContent === "次へ"
-            || classlist.contains("c-pager__item--next")) {
+        }
+        if (textContent === "次へ" || classlist.contains("c-pager__item--next")) {
             return "next";
-        } else if (textContent === "目次" && anchor.id !== "TxtMiruTocPage") {
+        }
+        if (textContent === "目次" && anchor.id !== "TxtMiruTocPage") {
             return "index";
         }
         return null;

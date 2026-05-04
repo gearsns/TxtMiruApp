@@ -9,7 +9,7 @@ const ReNovelPage = /(https:\/\/.*\.syosetu\.com\/n[A-Za-z0-9]+)\/(\d+)/;
 const ReNovelIndexPage = /https:\/\/.*\.syosetu\.com\/n[A-Za-z0-9]+\/$/;
 
 const makeItem = (url: string, doc: Document): TxtMiruItem => {
-    const item: TxtMiruItem = { className: "Narou", url: url, title: doc.title };
+    const item: TxtMiruItem = { className: "Narou", url, title: doc.title };
     KumihanMod(url, doc);
 
     TxtMiruLib.createPager(url, doc, item, (anchor) => {
@@ -35,9 +35,12 @@ const makeItem = (url: string, doc: Document): TxtMiruItem => {
     item.html = doc.body.innerHTML;
     return item;
 }
-const getNcode = (url: string) => {
-    const m = url.match(/https:\/\/.*\.syosetu\.com\/n([A-Za-z0-9]+)/)
-    return (m ? `N${m[1]}` : url).toLowerCase();
+
+const ReNcode = /syosetu\.com\/(n[a-z0-9]+)/i;
+
+const getNcode = (url: string): string => {
+    const m = url.match(ReNcode);
+    return m ? m[1].toLowerCase() : url;
 }
 const getUpdateInfo = async (url: string) => {
     if (!url) {
@@ -45,7 +48,7 @@ const getUpdateInfo = async (url: string) => {
     }
     const ncode = getNcode(url);
     if (!ncode) return [];
-    const apiUrl = `https://api.syosetu.com/novelapi/api/?out=jsonp&ncode=${ncode}&callback=callback`;
+    const apiUrl = `https://api.syosetu.com/novelapi/api/?out=jsonp&ncode=${ncode}`;
     try {
         const response = await fetchJsonp(apiUrl);
         return await response.json();

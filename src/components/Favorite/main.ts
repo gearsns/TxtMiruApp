@@ -9,15 +9,16 @@ import { FavoriteItem } from "./types"
 import { addSite, getUpdateTargets, makeTBody, performUpdateLogic } from "./logic"
 import { createAndOpen, ModalBase } from "../Base"
 
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(css);
+
 export class TxtMiruFavorite extends ModalBase {
     private favoriteList: FavoriteItem[] = [];
     private loader: TxtMiruLoading = new TxtMiruLoading();
-    public onSave?: ((url: string) => void) | undefined;
+    public onSave?: (url: string) => void;
 
     constructor() {
-        const style = new CSSStyleSheet();
-        style.replaceSync(css);
-        super(html, style);
+        super(html, sheet);
     }
 
     /** 公開API: 表示 */
@@ -46,7 +47,7 @@ export class TxtMiruFavorite extends ModalBase {
         const table = this.getEl("novel_list");
         if (table) table.style.visibility = "hidden";
 
-        this.favoriteList = await db.getFavoriteList({}) || [];
+        this.favoriteList = await db.getFavoriteList();
         this.dispList();
         if (table) table.style.visibility = "visible";
     }
@@ -100,7 +101,7 @@ export class TxtMiruFavorite extends ModalBase {
                 },
                 (siteInfo) => {
                     const element = targetsMap.get(siteInfo.url)?.element;
-                    if (element && element.className === "loading") {
+                    if (element?.className === "loading") {
                         element.className = "check_on";
                     }
                 }
@@ -114,17 +115,17 @@ export class TxtMiruFavorite extends ModalBase {
         await this.reload();
         this.loader.end();
     }
-    protected setupEvents(): void {
-        this.setupRootEvents((id) => {
-            if (id === "regist") { // 追加
+    protected setupEvents(signal: AbortSignal): void {
+        this.setupRootEvents(signal, (action) => {
+            if (action === "regist") { // 追加
                 openInputURL(() => { }, (url: string) => this.handleAddSite(url));
-            } else if (id === "delete") { // 削除
+            } else if (action === "delete") { // 削除
                 this.handleDelete();
-            } else if (id === "update") { // 最新情報に更新
+            } else if (action === "update") { // 最新情報に更新
                 this.handleUpdate();
-            } else if (id === "first") { // 最初から
+            } else if (action === "first") { // 最初から
                 this.loadNovel("url", "トップ");
-            } else if (id === "continue") { // 続きから
+            } else if (action === "continue") { // 続きから
                 this.loadNovel("cur_url", "続きから");
             }
         });
@@ -133,26 +134,26 @@ export class TxtMiruFavorite extends ModalBase {
         this.getEl("novel_list_body")?.addEventListener("click", (e) => {
             const tr = (e.target as HTMLElement).closest("tr");
             if (tr) tr.classList.toggle("check_on");
-        });
+        }, { signal });
 
         // ダブルクリックで続きから
         this.getEl("novel_list_body")?.addEventListener("dblclick", (e) => {
             const tr = (e.target as HTMLElement).closest("tr");
-            if (tr) {
-                this.hide();
-                const url = tr.getAttribute("cur_url") || tr.getAttribute("url");
-                if (url) {
-                    this.onSave?.(url);
-                }
+            if (!tr) return;
+            this.hide();
+            const url = tr.getAttribute("cur_url") || tr.getAttribute("url");
+            if (url) {
+                this.onSave?.(url);
             }
-        });
+        }, { signal });
 
         // ソート
         this.getEl("novel_list_head")?.addEventListener("click", async (e) => {
             let target = null;
-            if ((e.target as HTMLElement).tagName === "DIV") {
+            const tagName = (e.target as HTMLElement).tagName;
+            if (tagName === "DIV") {
                 target = e.target as HTMLElement;
-            } else if ((e.target as HTMLElement).tagName === "TD" || (e.target as HTMLElement).tagName === "TH") {
+            } else if (tagName === "TD" || tagName === "TH") {
                 target = (e.target as HTMLElement).children[0] as HTMLElement;
             } else {
                 return false;
@@ -170,7 +171,7 @@ export class TxtMiruFavorite extends ModalBase {
                 this.dispList();
             }
             return false;
-        });
+        }, { signal });
     }
 
     private async handleAddSite(url: string): Promise<void> {

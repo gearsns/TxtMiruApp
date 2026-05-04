@@ -19,7 +19,7 @@ describe('URL Utils (Pure Logic)', () => {
     });
 
     it('normalizeSyosetuUrl: nコードをURLに変換できること', () => {
-        expect(utils.normalizeSyosetuUrl('n1234ab')).toBe('https://ncode.syosetu.com/n1234ab');
+        expect(utils.normalizeSyosetuUrl('n1234ab')).toBe('https://ncode.syosetu.com/n1234ab/');
         expect(utils.normalizeSyosetuUrl('https://example.com')).toBe('https://example.com');
     });
 

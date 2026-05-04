@@ -1,0 +1,91 @@
+.inner {
+  overflow: auto;
+  top: var(--sat);
+  bottom: 0;
+  width: calc(100% - 80px);
+
+  input {
+    font-size: 1em;
+  }
+
+  dl {
+    margin-left: 1.2rem;
+  }
+}
+
+dt {
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+dd {
+  margin-left: 0;
+}
+
+input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.radio-area {
+  display: inline-block;
+  color: #fff;
+  clear: both;
+  background: rgb(38, 126, 167);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 1em;
+  z-index: 0;
+
+  input[type="radio"] {
+    display: none;
+  }
+
+  label {
+    font-size: 0.8em;
+    display: block;
+    cursor: pointer;
+    margin: 0;
+    float: left;
+    padding: 0.25em 1em;
+    color: #ccc;
+
+    &:last-of-type {
+      border-radius: 0 3px 3px 0;
+    }
+
+    &:has(input[type="radio"]:checked) {
+      position: relative;
+      color: #fff;
+      z-index: 0;
+
+      &::before {
+        position: absolute;
+        inset: 0;
+        content: "";
+        background: rgba(0, 0, 0, 0.4);
+        z-index: -1;
+      }
+    }
+  }
+}
+
+#server-url,
+#websocket-server-url {
+  width: 62.5rem;
+  max-width: calc(100% - 40px);
+}
+
+#font-name {
+  width: 12rem;
+}
+
+#tap-scroll-next-per,
+#delay-set-scroll-pos-state {
+  width: 6.2rem;
+}
+
+#user-id,
+#font-feature-settings {
+  width: 9.3rem;
+}

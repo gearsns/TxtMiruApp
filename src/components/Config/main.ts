@@ -1,14 +1,18 @@
+import css from "./styles.css?inline"
 import html from "./main.html?raw"
 import { db, Store } from '@/services/storage'
 import { TxtMiruMessageBox } from "../MessageBox";
 import { applySettingsToUI, extractSettingsFromUI } from "./logic";
 import { createAndOpen, ModalBase } from "../Base";
 
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(css);
+
 export class TxtMiruConfig extends ModalBase {
-    public onSave?: (() => void) | undefined;
+    public onSave?: () => void;
 
     constructor() {
-        super(html);
+        super(html, sheet);
     }
 
     private setValue(db?: Store) {
@@ -46,11 +50,11 @@ export class TxtMiruConfig extends ModalBase {
         }
     }
 
-    protected setupEvents() {
-        this.setupRootEvents((id) => {
-            if (id === "reset") {
+    protected setupEvents(signal: AbortSignal) {
+        this.setupRootEvents(signal, (action) => {
+            if (action === "reset") {
                 this.handleReset();
-            } else if (id === "regist") {
+            } else if (action === "regist") {
                 this.handleRegist();
             }
         });

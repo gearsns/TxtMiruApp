@@ -19,8 +19,8 @@ export const setupKeyboardEvents = (actions: AppActions) => {
         "Ctrl+ArrowRight": actions.gotoPrevEpisode,
     };
 
-    document.addEventListener("compositionstart", () => { isComposing = true; });
-    document.addEventListener("compositionend", () => { isComposing = false; });
+    document.addEventListener("compositionstart", () => isComposing = true);
+    document.addEventListener("compositionend", () => isComposing = false);
 
     document.addEventListener("keydown", (e: KeyboardEvent) => {
         // ガード句：ロード中、ポップアップ表示中、IME入力中は無視

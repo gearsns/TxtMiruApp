@@ -13,7 +13,7 @@ const fetchProperty = async <T>(
             ...params,
         });
 
-        const response = await fetch(`${config.baseUrl}?${urlParams}`, fetchOpt);
+        const response = await fetch(`${config.baseUrl}?${urlParams}`, { cache: "no-store", ...fetchOpt });
         if (!response.ok) return null;
 
         const json = await response.json();
@@ -55,6 +55,6 @@ export const updateFavorite = async (config: ApiConfig, id: number, item: Partia
     return fetchProperty<boolean>(config, data, "result", fetchOpt);
 }
 
-export const deleteFavorite = async (config: ApiConfig, id: number) => {
-    return fetchProperty<boolean>(config, { func: "delete_favorite", id: String(id) }, "result");
+export const deleteFavorite = async (config: ApiConfig, id: number, fetchOpt?: RequestInit) => {
+    return fetchProperty<boolean>(config, { func: "delete_favorite", id: String(id) }, "result", fetchOpt);
 }

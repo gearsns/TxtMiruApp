@@ -108,7 +108,6 @@ describe('UI Logic Tests', () => {
 
       // 引数の後半2つが true (hidden = true) になることを確認
       expect(elements.menu.reflectSetting).toHaveBeenCalledWith(
-        "dark",
         undefined,
         true, 
         true

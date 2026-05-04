@@ -11,7 +11,8 @@ const _getNovelId = (url: string): [string | null, boolean | null] => {
     let r;
     if (r = url.match(/https:\/\/www\.pixiv\.net\/novel\/show\.php\?id=(\d+)/)) {
         return [r[1], false];
-    } else if (r = url.match(/novel\/series\/(\d+)/)) {
+    } 
+    if (r = url.match(/novel\/series\/(\d+)/)) {
         return [r[1], true];
     }
     return [null, null];
@@ -84,16 +85,17 @@ const makeItem = async (url: string, text: string, novelId: string | null, serie
             htmlArr.push("</ol>");
             item.html = `<div class="title">${item.title}</div><div class="author">${jsonBody.userName}</div><div class="main">${htmlArr.join("")}</div>`;
         } else {
-            if (jsonBody.seriesNavData) {
-                const jsonNext = jsonBody.seriesNavData.next;
-                const jsonPrev = jsonBody.seriesNavData.prev;
+            const seriesNavData = jsonBody.seriesNavData;
+            if (seriesNavData) {
+                const jsonNext = seriesNavData.next;
+                const jsonPrev = seriesNavData.prev;
                 if (jsonNext) {
                     setItemEpisodeText("next-episode", `${PIXIV}show.php?id=${jsonNext.id}`, "次へ", item);
                 }
                 if (jsonPrev) {
                     setItemEpisodeText("prev-episode", `${PIXIV}show.php?id=${jsonPrev.id}`, "前へ", item);
                 }
-                setItemEpisodeText("episode-index", `${PIXIV}series/${jsonBody.seriesNavData.seriesId}`, "目次へ", item);
+                setItemEpisodeText("episode-index", `${PIXIV}series/${seriesNavData.seriesId}`, "目次へ", item);
             }
             const html = jsonBody.content.replace(/\n|\r\n|\r/g, '<br>').replaceAll("<br>[newpage]<br>", "<hr>");
             const doc = createScriptFreeDocument(html);
@@ -126,11 +128,12 @@ export class Pixiv extends TxtMiruSitePlugin {
             const novelUrl = _getNovelUrl(url);
             callback?.([url]);
             const novel_contents = await novelAPI(novelUrl);
+            const body = novel_contents.body;
             results.push({
                 url: Shared.removeSlash(url),
-                max_page: novel_contents.body.displaySeriesContentCount,
-                name: novel_contents.body.title,
-                author: novel_contents.body.userName
+                max_page: body.displaySeriesContentCount,
+                name: body.title,
+                author: body.userName
             });
         }
         return results;

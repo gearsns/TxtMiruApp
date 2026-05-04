@@ -17,8 +17,8 @@ const Start = async () => {
 
     const popupManager = Shared.createPopupManager(() => Features.showMenu(false));
     const { state, actions, loadNovelWrapper } = createAppContext(popupManager);
-
     const { contents, menu } = Features.elements;
+
     const cacheLoad = async () => {
         let url = contents.getAttribute(Shared.EPISODE.NEXT);
         if (state.loader.isLoading || Features.backgroundAbortController || !url) {

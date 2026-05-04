@@ -1,6 +1,9 @@
 import css from "./styles.css?inline"
 import { buildContent } from "./logic";
 
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(css);
+
 export class TxtMiruLoading extends HTMLElement {
     private loadingElement: HTMLDivElement;
     private _isLoading: boolean = false;
@@ -13,13 +16,17 @@ export class TxtMiruLoading extends HTMLElement {
         const shadow = this.attachShadow({ mode: 'open' });
 
         // スタイルの定義
-        const style = document.createElement('style');
-        style.textContent = css
+        shadow.adoptedStyleSheets = [sheet];
 
         this.loadingElement = document.createElement("div");
         this.loadingElement.className = "top hide";
 
-        shadow.appendChild(style);
+        this.loadingElement.addEventListener("dblclick", (e) => {
+            if ((e.target as HTMLElement).closest(".loader")) {
+                this.cancel();
+            }
+        });
+
         shadow.appendChild(this.loadingElement);
     }
 
@@ -27,15 +34,14 @@ export class TxtMiruLoading extends HTMLElement {
         return this._isLoading;
     }
 
+    disconnectedCallback() {
+        this.cancel();
+    }
     /**
      * 処理の中断
      */
     public cancel = (): void => {
-        try {
-            this._abortController?.abort("cancel");
-        } catch (e) {
-            console.error("Abort error:", e);
-        }
+        this._abortController?.abort("cancel");
     };
 
     /**
@@ -65,8 +71,6 @@ export class TxtMiruLoading extends HTMLElement {
         if (elmq && elmq.scrollHeight <= elmq.clientHeight) {
             elmq.className = "nomarquee";
         }
-
-        this.loadingElement.querySelector(".loader")?.addEventListener("dblclick", () => this.cancel());
     };
 
     /**
@@ -76,9 +80,7 @@ export class TxtMiruLoading extends HTMLElement {
         this.cancel();
         this._abortController = undefined;
         this.loadingElement.classList.add("hide");
-        if (this.parentElement) {
-            document.body.removeChild(this);
-        }
+        this.remove();
         this._isLoading = false;
     };
 }

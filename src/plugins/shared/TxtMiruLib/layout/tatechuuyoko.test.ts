@@ -17,6 +17,7 @@ describe('convertTatechuuyokoNum', () => {
 
             convertTatechuuyokoNum(doc);
 
+            console.log(document.body.innerHTML)
             const span = document.querySelector('.tatechuyoko');
             expect(span).not.toBeNull();
             expect(span?.textContent).toBe('25');

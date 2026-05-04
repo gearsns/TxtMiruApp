@@ -14,8 +14,7 @@ export const convertRuby = (doc: Document): void => {
         let rbText = "";
 
         // 子ノードを1つずつ確認
-        const nodes = Array.from(item.childNodes);
-        for (const node of nodes) {
+        item.childNodes.forEach(node => {
             if (node.nodeType === Node.TEXT_NODE) {
                 // 直接のテキストを結合
                 rbText += node.textContent?.trim() || "";
@@ -27,18 +26,19 @@ export const convertRuby = (doc: Document): void => {
                 }
                 // RT, RP, BSR（注釈）などは計算から除外するため、ここでは何もしない
             }
-        }
+        });
         // rtが1つ、かつベーステキストが存在する場合に処理
-        if (rtList.length === 1 && rbText.length > 0) {
+        const rbLen = rbText.length;
+        if (rtList.length === 1 && rbLen > 0) {
             const rtText = (rtList[0] as HTMLElement).textContent
                 .replace(/゛/g, "\u3099").replace(/／＼/g, "\u3033\u3035")
                 .replace(/／″＼/g, "\u3034\u3035").replace(/゜/g, "\u209A");
             item.setAttribute("data-ruby", rtText);
 
             if (!/^[A-Za-z0-9 -/:-@\[-~]+$/.test(rtText)) {
-                const rtHeight = rtText.length;
-                const rbHeight = rbText.length * 2;
-                if (rtHeight >= 2 && rtText.length === rbText.length) {
+                const rtLen = rtText.length;
+                const rbHeight = rbLen * 2;
+                if (rtLen >= 2 && rtLen === rbLen) {
                     if (/^・+$/.test(rtText)) {
                         item.setAttribute("rt-emphasis", "");
                         item.setAttribute("data-ruby", rtText.replace(/・/g, "﹅"));
@@ -47,22 +47,22 @@ export const convertRuby = (doc: Document): void => {
                         item.setAttribute("rt-spacing", "");
                         setRubyStyle(item.style, 1, 0.5, 0);
                     }
-                } else if (rtHeight > 2 && rtHeight < rbHeight) {
-                    const sp = (rbHeight - rtHeight) / rtHeight;
+                } else if (rtLen > 2 && rtLen < rbHeight) {
+                    const sp = (rbHeight - rtLen) / rtLen;
                     item.setAttribute("rt-spacing", "");
                     setRubyStyle(item.style, sp, sp / 2, 0);
-                } else if (rtHeight === 2 && rtHeight < rbHeight) {
+                } else if (rtLen === 2 && rtLen < rbHeight) {
                     const sp = (rbHeight / 2);
                     item.setAttribute("rt-spacing", "");
                     setRubyStyle(item.style, sp, 0, sp / 2);
-                } else if (rtHeight > rbHeight) { // ルビの方が長い
-                    const sp = (rtHeight - rbHeight) / (rbHeight / 2 + 1) / 2;
+                } else if (rtLen > rbHeight) { // ルビの方が長い
+                    const sp = (rtLen - rbHeight) / (rbHeight / 2 + 1) / 2;
                     item.setAttribute("rt-spacing", "");
                     item.style.setProperty("letter-spacing", `${sp * 2}em`);
                     item.style.setProperty("margin-top", `${sp}em`);
                     item.style.setProperty("margin-bottom", `-${sp}em`);
                     setRubyStyle(item.style, 0, -sp * 2, sp / 2);
-                } else if (rtHeight === 1 && rtText.length === rbText.length) {
+                } else if (rtLen === 1 && rtLen === rbLen) {
                     if (/^・+$/.test(rtText)) {
                         item.setAttribute("rt-emphasis", "");
                         item.setAttribute("data-ruby", rtText.replace(/・/g, "﹅"));

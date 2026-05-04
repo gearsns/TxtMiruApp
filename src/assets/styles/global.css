@@ -1,12 +1,20 @@
 @import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Serif+JP:wght@400;700&display=swap");
 
 :root {
-  --sat: env(safe-area-inset-top);
-  --sar: env(safe-area-inset-right);
-  --sab: env(safe-area-inset-bottom);
-  --sal: env(safe-area-inset-left);
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
   --font-feature-settings: "vchw", "vkrn";
   --background: #f7f6eb;
+  --menu-background-color: #e7e7dae3;
+  --track-color: #e3e4d4;
+  --chapter-color: #000;
+  --chapter-bk-color: #eeeee2;
+  --page-effect-color: #0002;
+  --text-color: black;
+  --link-color: rgb(69, 90, 184);
+  --pager-link-color: #e9e5d4;
 }
 
 html,
@@ -15,13 +23,16 @@ body {
   margin: 0;
   position: absolute;
   -webkit-text-size-adjust: 100%;
-  font-size: 62.5%;
   font-variant-east-asian: jis78;
   min-height: 100%;
 }
 
 html {
   scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
 }
 
 /* iPhoneの為の処理
@@ -69,44 +80,58 @@ https://github.com/klmkyo/ios-safari-restore-meta-theme-color
   display: none;
 }
 
-main.TxtMiru {
-  position: fixed;
-  margin: 0;
-  height: 100%;
-  width: calc(100% + 1px);
-  background: var(--background);
-  overflow-x: scroll;
-  overflow-y: hidden;
-  /*font*/
-  font-size: 1.8rem;
-  -webkit-font-smoothing: antialiased;
-  -moz-font-smoothing: antialiased;
-  font-smooth: antialiased;
-  font-weight: 400;
-  line-height: 1.6;
-  -webkit-text-size-adjust: 100%;
-  -moz-text-size-adjust: 100%;
-  -ms-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-  font-family: "Hiragino Mincho ProN", "Noto Serif JP", serif;
-  font-display: swap;
+main {
+  &.TxtMiru {
+    position: fixed;
+    top: var(--sat);
+    left: 0;
+    margin: 0;
+    padding: 2.25rem 0 0.2rem;
+    box-sizing: border-box;
+    bottom: var(--sab);
+    width: 100dvw;
+    background: var(--background);
+    overflow-x: scroll;
+    overflow-y: hidden;
+    /*font*/
+    font-size: 1.1rem;
+    font-weight: 400;
+    line-height: 1.6;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    font-family: "Hiragino Mincho ProN", "Noto Serif JP", serif;
+    font-display: swap;
+    color: var(--text-color);
+    scrollbar-color: var(--track-color) var(--background);
+
+    &::focus {
+      outline: none;
+    }
+
+    .chapter_title {
+      color: var(--chapter-color);
+      background-color: var(--chapter-bk-color);
+    }
+  }
+
+  &.bottom_menu {
+    padding: 0.5rem 0;
+    bottom: max(2.5rem, calc(var(--sab) + 1rem));
+  }
+
+  &.zoom_p2 {
+    font-size: 1.75rem;
+  }
+
+  &.zoom_p1 {
+    font-size: 1.35rem;
+  }
+
+  &.zoom_m1 {
+    font-size: 1.0rem;
+  }
 }
 
-main.TxtMiru:focus {
-  outline: none;
-}
-
-main.zoom_p2 {
-  font-size: 2.8rem;
-}
-
-main.zoom_p1 {
-  font-size: 2.2rem;
-}
-
-main.zoom_m1 {
-  font-size: 1.6rem;
-}
 
 #contents {
   position: relative;
@@ -114,20 +139,13 @@ main.zoom_m1 {
   margin: 0;
   padding: 0;
   font-size: 1em;
-  -webkit-font-smoothing: antialiased;
-  -moz-font-smoothing: antialiased;
-  font-smooth: antialiased;
   font-weight: 400;
   line-height: 1.8;
   -webkit-text-size-adjust: 100%;
-  -moz-text-size-adjust: 100%;
-  -ms-text-size-adjust: 100%;
   text-size-adjust: 100%;
   font-family: var(--contents-font, "Hiragino Mincho ProN", "Noto Serif JP", serif);
-
   font-display: swap;
-  height: calc(100% - 8rem);
-  padding-top: 5rem;
+  height: 100%;
   /* 折り返し設定 */
   word-break: normal !important;
   word-wrap: break-word;
@@ -135,28 +153,28 @@ main.zoom_m1 {
   line-break: strict;
   hanging-punctuation: allow-end;
   hyphens: auto;
-}
 
-#contents img {
-  max-height: 100%;
-  width: auto !important;
-}
+  & a {
+    color: var(--link-color);
+  }
 
-.bottom_menu #contents {
-  padding-top: 2rem;
+  & img {
+    max-height: 100%;
+    width: auto !important;
+  }
+
+  h1 {
+    font-size: 1.5em;
+  }
+
+  h2 {
+    font-size: 1.2em;
+  }
 }
 
 #contents.contents a,
 a:visited {
-  color: black;
-}
-
-#contents h1 {
-  font-size: 1.5em;
-}
-
-#contents h2 {
-  font-size: 1.2em;
+  color: var(--link-color);
 }
 
 ruby[data-ruby] {
@@ -201,8 +219,28 @@ ruby[data-ruby] rt {
   display: none;
 }
 
+.dakuten {
+  position: relative;
+  display: inline-block;
+}
+
+.dakuten::after {
+  content: '';
+  position: absolute;
+  mask-image: url(/assets/dakuten.svg);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  right: 0.3em;
+  width: 0.23em;
+  height: 0.23em;
+  top: 0.1em;
+  background-color: currentColor;
+  pointer-events: none;
+}
+
 .prev-episode,
 .next-episode {
+  position: relative;
   font-size: 0.8em;
   height: 100%;
   background: #18b7cd;
@@ -210,6 +248,21 @@ ruby[data-ruby] rt {
   padding-bottom: 5.5vh;
   padding-right: 0.8em;
   cursor: pointer;
+  z-index: 1;
+  overflow: hidden;
+
+  &:before {
+    display: inline-block;
+    position: relative;
+    content: "";
+    background: url(/assets/hishigata.svg);
+    background-size: 100%;
+    background-repeat: no-repeat;
+    opacity: .6;
+    width: 1em;
+    height: 1em;
+    padding-bottom: .5em
+  }
 }
 
 .prev-episode {
@@ -232,64 +285,15 @@ ruby[data-ruby] rt {
   cursor: pointer;
 }
 
-.prev-episode,
-.next-episode {
-  position: relative;
-  background: #18b7cd url(/assets/seigaiha.png);
-  z-index: 1;
-  overflow: hidden;
-}
-
-.prev-episode::after,
-.next-episode::after {
-  content: '';
-  position: absolute;
-  background: linear-gradient(to bottom, #18b7cd 0%, #18b7cd 70%, rgba(24, 184, 205, 0.1) 100%);
-  opacity: 1.0;
-  width: 100vw;
-  height: 105.5vh;
-  left: 0;
-  top: -5.5vh;
-  padding: 0;
-  margin: 0;
-  z-index: -1;
-}
-
-.prev-episode::before,
-.next-episode::before {
-  display: inline-block;
-  position: relative;
-  content: '';
-  background: url(/assets/hishigata.svg);
-  background-size: 100%;
-  background-repeat: no-repeat;
-  opacity: 0.6;
-  width: 1em;
-  height: 1em;
-  padding-bottom: 0.5em;
-}
-
-.next-episode::before {
-  transform: scale(-1, 1);
-}
-
 .txtmiru_pager {
-  padding-top: 1rem;
-  padding-bottom: 1rem;
+  padding: 1rem 2px;
   margin-bottom: 1rem;
-  background-color: darkseagreen;
+  color: var(--text-color) !important;
+  background-color: var(--pager-link-color);
   text-decoration: none !important;
 }
 
 /**/
-
-.vertical {
-  writing-mode: vertical-rl;
-  -webkit-writing-mode: vertical-rl;
-  -ms-writing-mode: tb-rl;
-  text-orientation: mixed;
-}
-
 .TxtMiruTop,
 p {
   margin: 0;
@@ -301,75 +305,69 @@ p {
   hanging-punctuation: force-end;
 }
 
-.TxtMiruTop .novel_title,
-.TxtMiruTop .chapter_title {
-  padding: 0.8em 1.2em 0;
-  /* 上 左右 下0 */
-  font-weight: bold;
+.TxtMiruTop {
+
+  .novel_title,
+  .chapter_title {
+    padding: 0.8em 1.2em 0;
+    /* 上 左右 下0 */
+    font-weight: bold;
+  }
+
+  .novel_title {
+    font-size: 1.2em;
+  }
+
+  .chapter_title {
+    background: var(--chapter-bk-color);
+  }
+
+  .novel_sublist {
+    border-left: 1px solid var(--chapter-bk-color);
+  }
+
+  table {
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+
+  table td,
+  table th {
+    border: 1px solid var(--chapter-bk-color);
+    padding: 6px 13px;
+  }
+
+  a {
+    text-decoration: none !important;
+  }
 }
 
-.TxtMiruTop .novel_title {
-  font-size: 1.2em;
-}
+.vertical {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
 
-.TxtMiruTop .chapter_title {
-  background: #eeeee2;
-}
+  .tatechuyoko_top {
+    display: inline-block;
+  }
 
-.TxtMiruTop .novel_sublist {
-  border-left: 1px solid #ddddd0;
-}
+  .tatechuyoko {
+    text-combine-upright: all;
+  }
 
-.TxtMiruTop table {
-  border-collapse: collapse;
-  border-spacing: 0;
-}
+  .yakumono_spacing {
+    letter-spacing: -0.5em;
+  }
 
-.TxtMiruTop table td,
-.TxtMiruTop table th {
-  border: 1px solid #ddddd0;
-  padding: 6px 13px;
-}
+  a {
+    text-decoration: overline;
+  }
 
-.TxtMiruTop a {
-  text-decoration: none !important;
-}
-
-.vertical .tatechuyoko_top {
-  display: inline-block;
-}
-
-.vertical .tatechuyoko {
-  -webkit-text-combine: horizontal;
-  -ms-text-combine-horizontal: all;
-  text-combine-upright: all;
-}
-
-.vertical .yakumono_spacing {
-  letter-spacing: -0.5em;
-}
-
-.vertical a {
-  text-decoration: overline;
-}
-
-.vertical .sideways_date {
-  writing-mode: sideways-rl;
-  --webkit-writing-mode: sideways-rl;
+  .sideways_date {
+    writing-mode: sideways-rl;
+  }
 }
 
 /**/
-#TxtMiruPageEffect {
-  position: absolute;
-  top: 0px;
-  width: 100%;
-  height: 100%;
-  background-color: #0002;
-  color: white;
-  display: none;
-  z-index: 9999999;
-}
-
 @keyframes fadeOutLight {
   from {
     opacity: 1;
@@ -380,16 +378,27 @@ p {
   }
 }
 
-#TxtMiruPageEffect.fadeInAnime1,
-#TxtMiruPageEffect.fadeInAnime2 {
-  animation: fadeOutLight 2s forwards;
-  opacity: 0;
+#TxtMiruPageEffect {
+  position: absolute;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  background-color: var(--page-effect-color);
+  color: white;
+  display: none;
+  z-index: 9999999;
+
+  &.fadeInAnime1,
+  &.fadeInAnime2 {
+    animation: fadeOutLight 2s forwards;
+    opacity: 0;
+  }
 }
 
 .TxtMiruTopContentsHistory .novel_sublist {
   display: list-item;
   list-style: cjk-ideographic;
-  margin-top: 2rem;
+  margin-top: 1.3em;
 }
 
 #TxtMiruTopContentsLocalHistoryList.hide,
@@ -408,12 +417,15 @@ p {
 
   #novel_header,
   #pageBottom,
+  #recommend,
+  #footer,
+  #pageTop,
+  #impression,
+  form,
   .box_announce_bookmark,
   .toaster,
   .narou_modal,
   .footerbookmark,
-  #recommend,
-  #footer,
   .c-announce-box,
   .c-menu,
   .c-modal,
@@ -424,12 +436,9 @@ p {
   .p-finish-read,
   .p-novelpoint-form__note,
   .novel_hyouka,
-  #pageTop,
-  form,
   .p-new-impression__manage,
   .p-bookmark-bar,
-  .p-reaction,
-  #impression {
+  .p-reaction {
     display: none;
   }
 
@@ -468,7 +477,8 @@ p {
     padding-right: 1.2em;
     padding-left: 1.2em;
     font-weight: bold;
-    background: #eeeee2;
+    color: var(--chapter-color);
+    background: var(--chapter-bk-color);
   }
 
   #novel_contents .novel_subtitle {
@@ -478,25 +488,26 @@ p {
   }
 
   dl.novel_sublist2 {
-    border-left: 1px solid #ddddd0;
+    border-left: 1px solid var(--chapter-bk-color);
   }
 
   .subtitles li.chapter,
   .p-eplist__chapter-title {
-    margin-top: -2rem;
-    padding: 1rem 1rem 0 1rem;
+    margin-top: -2em;
+    padding: 1em 1em 0 1em;
     font-weight: bold;
     padding-top: 0.8em;
     padding-right: 1.2em;
     padding-left: 1.2em;
     font-weight: bold;
-    background: #eeeee2;
+    color: var(--chapter-color);
+    background: var(--chapter-bk-color);
   }
 
   .subtitles li,
   .p-eplist__sublist {
     list-style-type: none;
-    border-right: 1px solid #ddddd0
+    border-right: 1px solid var(--chapter-bk-color)
   }
 
   .subtitles li a,
@@ -530,8 +541,10 @@ p {
   }
 
   .c-pager__item {
-    margin-bottom: 1rem;
-    background-color: darkseagreen;
+    color: var(--text-color) !important;
+    padding: 1em 2px;
+    margin-bottom: 1em;
+    background-color: var(--pager-link-color);
     text-decoration: none;
   }
 }
@@ -540,32 +553,21 @@ p {
 
 .Kakuyomu {
 
-  .js-viewer-globalheader,
-  #work-ad-regular-header-left,
-  #work-ad-regular-header-right,
-  #work-ad-regular-work-review-left,
-  #work-ad-regular-work-review-right,
-  #work-ad-regular-footer-left,
-  #work-ad-regular-footer-right,
+  [id^="work-ad-"],
+  [id^="globalHeaderPC-"],
+  [id$="-modalContainer"],
   #episodeFooter,
-  #displaySetting-modalContainer,
-  #episodeCheer-modalContainer,
-  #workFollow-modalContainer,
-  #userFollow-modalContainer,
   #author-information-followButton,
-  #globalHeaderPC-logo,
-  #globalHeaderPC-inner,
   #userProfile-actionButtons,
-  #userFollow-modalContainer,
   #modal-userBlock,
   #workFollow,
-  .widget-workReview-reviewMeta,
   #reviews,
   #workInformationAside,
-  #like-modalContainer,
   #signUpBalloon,
-  .contentMain-pagerArrow,
   #workMeta,
+  .js-viewer-globalheader,
+  .widget-workReview-reviewMeta,
+  .contentMain-pagerArrow,
   .widget-internalLinks,
   .ui-truncateTextButton-expandButton,
   .RegularMediaGlobalHeader_regularGlobalHeader__hFOw3,
@@ -603,7 +605,7 @@ p {
   }
 
   .widget-toc-episode {
-    border-left: 1px solid #ddddd0;
+    border-left: 1px solid var(--chapter-bk-color);
   }
 
   .widget-toc-items {
@@ -613,7 +615,7 @@ p {
   .widget-toc-episode-datePublished {
     display: block;
     text-align: right;
-    color: black;
+    color: var(--chapter-color);
     text-decoration: none;
     text-orientation: sideways;
   }
@@ -643,24 +645,26 @@ p {
 
   .subtitles li {
     list-style-type: none;
-    border-right: 1px solid #ddddd0;
+    border-right: 1px solid var(--chapter-bk-color);
 
     chapter {
-      margin-top: -2rem;
-      padding: 1rem 1rem 0 1rem;
+      margin-top: -2em;
+      padding: 1em 1em 0 1em;
       font-weight: bold;
       padding-top: 0.8em;
       padding-right: 1.2em;
       padding-left: 1.2em;
       font-weight: bold;
-      background: #eeeee2;
+      color: var(--chapter-color);
+      background: var(--chapter-bk-color);
     }
 
     a {
       text-decoration: none !important;
     }
 
-    .long_update {
+    .long_update,
+    .sideways_date {
       text-align: right;
       display: block;
     }
@@ -855,8 +859,8 @@ p {
   .overline_wave {
     padding-right: 4px;
     background-image:
-      linear-gradient(225deg, transparent 35%, black 50%, transparent 65%),
-      linear-gradient(315deg, transparent 35%, black 50%, transparent 65%);
+      linear-gradient(225deg, transparent 35%, var(--chapter-color) 50%, transparent 65%),
+      linear-gradient(315deg, transparent 35%, var(--chapter-color) 50%, transparent 65%);
     background-size: 5px 10px;
     background-position: calc(100% - 2px) 0px, calc(100% - 2px) 5px;
     background-repeat: repeat-y;
@@ -876,7 +880,7 @@ p {
   }
 
   .keigakomi {
-    border: 1px solid #000;
+    border: 1px solid var(--chapter-color);
   }
 
   .dai1 {
@@ -921,7 +925,7 @@ p {
     padding-right: 1.2em;
     padding-left: 1.2em;
     font-weight: bold;
-    background: #eeeee2;
+    background: var(--chapter-bk-color);
   }
 
   .chapter_title a,
@@ -937,7 +941,7 @@ p {
   }
 
   dl.novel_sublist2 {
-    border-left: 1px solid #ddddd0;
+    border-left: 1px solid var(--chapter-bk-color);
   }
 }
 
@@ -993,7 +997,7 @@ p {
   }
 
   .episode {
-    border-left: 1px solid #ddddd0;
+    border-left: 1px solid var(--chapter-bk-color);
   }
 
   .open-date {
@@ -1101,7 +1105,7 @@ p {
   }
 
   .novel-toc-episode {
-    border-left: 1px solid #ddddd0;
+    border-left: 1px solid var(--chapter-bk-color);
   }
 
   .novel-toc-items {
@@ -1127,6 +1131,10 @@ p {
   #suggests,
   #storyEpisodeToolbar,
   #section_comment,
+  #alternative_header,
+  #section_suggest_list,
+  #footer,
+  #story_episode_toolbar,
   .storyIndexFooter,
   .goodCount,
   .commentLink,
@@ -1135,12 +1143,8 @@ p {
   .closeButton,
   .login,
   .sub_navi,
-  #alternative_header,
   .sns_set,
   .footer-nav,
-  #section_suggest_list,
-  #footer,
-  #story_episode_toolbar,
   .scroll-top {
     display: none !important;
   }
@@ -1165,7 +1169,7 @@ p {
     }
 
     li {
-      border-left: 1px solid #ddddd0;
+      border-left: 1px solid var(--chapter-bk-color);
     }
 
     .chapter {
@@ -1174,7 +1178,7 @@ p {
       padding-right: 1.2em;
       padding-left: 1.2em;
       font-weight: bold;
-      background: #eeeee2;
+      background: var(--chapter-bk-color);
 
       cite {
         font-style: normal;
@@ -1190,7 +1194,7 @@ p {
 
     .comment_link p {
       float: right;
-      margin-inline-start: 2rem;
+      margin-inline-start: 2em;
     }
   }
 
@@ -1207,40 +1211,14 @@ p {
     display: flex;
 
     div {
-      margin-inline-end: 2rem;
+      margin-inline-end: 2em;
     }
   }
 }
 
 /**/
-
-@media screen and (max-height:600px) {
-  #contents {
-    height: calc(100% - 8rem);
-    padding-top: 5rem;
-    padding-bottom: 1rem;
-  }
-
-  .prev-episode,
-  .next-episode {
-    height: 200%;
-    padding-top: 5rem;
-    padding-bottom: 1rem;
-  }
-
-  .bottom_menu #contents {
-    padding-top: 2rem;
-  }
-}
-
 @media screen and (max-width:750px),
 (orientation:portrait) {
-  main.TxtMiru {
-    margin: 0;
-    height: 100%;
-    width: 100%;
-  }
-
   .show-input-url .url {
     width: 90%;
   }
@@ -1257,76 +1235,5 @@ p {
 (orientation:landscape) {
   .prev-episode {
     padding-right: calc(env(safe-area-inset-right) + 0.8em);
-  }
-}
-
-@media print {
-  @page {
-    size: A4 landscape;
-    padding: 0;
-    margin: auto;
-  }
-
-  header,
-  .prev-episode,
-  .next-episode,
-  #TxtMiruTopContents {
-    display: none;
-  }
-
-  main.TxtMiru {
-    font-size: 1rem;
-    position: absolute;
-    overflow: visible;
-    width: auto;
-    height: 155mm;
-    padding: 0;
-    margin-top: 10mm;
-  }
-
-  #contents {
-    font-size: 1.5rem;
-    position: relative;
-    overflow: visible;
-    width: auto;
-    height: 155mm;
-    margin: 0;
-    padding: 0;
-    word-break: break-all;
-  }
-
-  main.zoom_p2,
-  main.zoom_p1,
-  main.zoom_m1 {
-    font-size: 1rem;
-    zoom: 1;
-  }
-
-  html,
-  body {
-    zoom: 1;
-    width: 251mm;
-    height: 175mm;
-    padding: 0;
-    margin: 0;
-    position: relative;
-    overflow: visible;
-    -webkit-writing-mode: vertical-rl;
-    -ms-writing-mode: tb-rl;
-    writing-mode: vertical-rl;
-    word-break: break-all;
-  }
-
-  .kaicho,
-  .new-page,
-  .new-mihiraki,
-  .new-block,
-  .page-break {
-    page-break-before: always;
-    min-width: 50vw;
-  }
-
-  a {
-    text-decoration: none !important;
   }
 }

@@ -1,17 +1,21 @@
 import { getNovelUrl, normalizeSyosetuUrl } from "@shared";
 import { createAndOpen, ModalBase } from "../Base";
+import css from "./styles.css?inline"
 import html from "./main.html?raw"
 
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(css);
+
 export class TxtMiruInputURL extends ModalBase {
-    public onSave?: ((url: string) => void) | undefined;
+    public onSave?: (url: string) => void;
 
     constructor() {
-        super(html);
+        super(html, sheet);
     }
 
     public show = (): void => {
         const input = this.getEl<HTMLInputElement>("input-url");
-        input.value = getNovelUrl() || "";
+        input.value = getNovelUrl() ?? "";
         input.focus();
         input.select();
     }
@@ -22,27 +26,27 @@ export class TxtMiruInputURL extends ModalBase {
         this.hide();
     }
 
-    protected setupEvents = (): void => {
-        this.setupRootEvents((id) => {
-            if (id === "open") this.jump();
+    protected setupEvents = (signal: AbortSignal): void => {
+        this.setupRootEvents(signal, (action) => {
+            if (action === "open") this.jump();
         });
 
         let isComposing: boolean = false;
 
         const input = this.getEl<HTMLInputElement>("input-url");
-        input.addEventListener("compositionstart", () => { isComposing = true; });
-        input.addEventListener("compositionend", () => { isComposing = false; });
+        input.addEventListener("compositionstart", () => isComposing = true, { signal });
+        input.addEventListener("compositionend", () => isComposing = false, { signal });
         input.addEventListener("keydown", (e: KeyboardEvent) => {
             if (isComposing) return;
 
-            if (e.code === "Enter" || e.code === "NumpadEnter") {
+            if (e.key === "Enter") {
                 this.jump();
                 e.preventDefault();
-            } else if (e.code === "Escape") {
+            } else if (e.key === "Escape") {
                 this.hide();
                 e.preventDefault();
             }
-        });
+        }, { signal });
     }
 }
 

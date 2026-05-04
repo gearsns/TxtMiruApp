@@ -48,7 +48,8 @@ const getIndexUrl = (url: string) => {
     const r = url.match(ReNovelPage);
     if (r) {
         return { pageUrl: r[1], indexUrl: `${AKATSUKI}stories/index/novel_id~${r[2]}` };
-    } else if (ReNovelIndex.test(url)) {
+    }
+    if (ReNovelIndex.test(url)) {
         return { indexUrl: Shared.removeSlash(url) };
     }
     return {};
@@ -76,8 +77,8 @@ export class Akatsuki extends TxtMiruSitePlugin {
             results.push({
                 url: Shared.removeSlash(url),
                 max_page: maxPage,
-                name: name,
-                author: author
+                name,
+                author
             });
         }
         return results;
@@ -91,7 +92,8 @@ export class Akatsuki extends TxtMiruSitePlugin {
             const doc = await getHtmlDocument({ url: indexUrl, charset: "UTF-8" }, txtMiru);
             const pageNo = TxtMiruLib.getPageNumber(doc, PAGE_SELECTOR, pageUrl);
             return { url: Shared.removeSlash(url), page_no: pageNo, index_url: indexUrl };
-        } else if (indexUrl) {
+        }
+        if (indexUrl) {
             return { url: indexUrl, page_no: 0, index_url: indexUrl };
         }
         return null;

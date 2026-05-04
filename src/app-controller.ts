@@ -1,6 +1,6 @@
 import * as Features from '@features';
 import * as Components from '@components';
-import * as Shared from '@shared';
+import { EPISODE, EpisodeAction } from '@shared';
 import { db } from './services/storage';
 import { AppActions } from './types/actions';
 
@@ -15,27 +15,30 @@ export const createAppContext = (popupManager: {
         loader: new Components.TxtMiruLoading(),
         isPrefetch: false,
         setHistory: (checkUrl: string | null, title: string) => Features.createEntry(main, db, checkUrl, title),
-        updateCacheIcon: () => Features.updateIcon(contents.getAttribute(Shared.EPISODE.NEXT))
+        updateCacheIcon: () => Features.updateIcon(contents.getAttribute(EPISODE.NEXT))
     };
 
     // 2. ラッパー関数
-    const loadNovelWrapper = (url?: string, pos: number | string = 0, noHist = false) =>
+    const loadNovelWrapper = (url?: string | null, pos: number | string = 0, noHist = false) =>
         Features.loadNovel(state, url, pos, noHist);
 
     const withPopup = popupManager.run;
 
     // Page Action
-    const gotoAttributeUrl = (name: Shared.EpisodeAction) => {
+    const gotoAttributeUrl = (name: EpisodeAction) => {
         const url = contents?.getAttribute(name);
         url && loadNovelWrapper(url);
     }
-    const gotoIndex = () => gotoAttributeUrl(Shared.EPISODE.INDEX);
-    const gotoNextEpisode = () => gotoAttributeUrl(Shared.EPISODE.NEXT);
-    const gotoPrevEpisode = () => gotoAttributeUrl(Shared.EPISODE.PREV);
+    const gotoEpisodeOrIndex = (attr: EpisodeAction) => {
+        contents.getAttribute(attr) ? gotoAttributeUrl(attr) : gotoIndex();
+    };
+    const gotoIndex = () => gotoAttributeUrl(EPISODE.INDEX);
+    const gotoNextEpisode = () => gotoAttributeUrl(EPISODE.NEXT);
+    const gotoPrevEpisode = () => gotoAttributeUrl(EPISODE.PREV);
 
     // 3. Actionsの構築
     const actions: AppActions = {
-        loadNovel: (url, pos, noHist) => Features.loadNovel(state, url, pos, noHist),
+        loadNovel: loadNovelWrapper,
         // Page Action
         pageNext: () => Features.handlePageNavigation(db, true),
         pagePrev: () => Features.handlePageNavigation(db, false),
@@ -44,14 +47,8 @@ export const createAppContext = (popupManager: {
         gotoIndex,
         gotoNextEpisode,
         gotoPrevEpisode,
-        gotoPrevEpisodeOrIndex: () => {
-            contents.getAttribute(Shared.EPISODE.PREV)
-                ? gotoPrevEpisode() : gotoIndex()
-        },
-        gotoNextEpisodeOrIndex: () => {
-            contents.getAttribute(Shared.EPISODE.NEXT)
-                ? gotoNextEpisode() : gotoIndex()
-        },
+        gotoPrevEpisodeOrIndex: () => gotoEpisodeOrIndex(EPISODE.PREV),
+        gotoNextEpisodeOrIndex: () => gotoEpisodeOrIndex(EPISODE.NEXT),
         gotoUrl: (url: string) => Features.handleGotoUrl(url, loadNovelWrapper),
         //
         showMenu: Features.showMenu,

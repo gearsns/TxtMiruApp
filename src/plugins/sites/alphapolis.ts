@@ -73,8 +73,8 @@ export class Alphapolis extends TxtMiruSitePlugin {
             results.push({
                 url: Shared.removeSlash(url),
                 max_page: doc.querySelectorAll(".body .episode").length,
-                name: name,
-                author: author
+                name,
+                author
             });
         }
         return results;

@@ -53,15 +53,15 @@ describe('Favorite Utilities', () => {
             }] as any;
 
             const result = buildTrList(list);
-            expect(result[0]).toContain('item_id="1"');
-            expect(result[0]).toContain('TestSite');
-            expect(result[0]).toContain('Title');
+            expect(result).toContain('item_id="1"');
+            expect(result).toContain('TestSite');
+            expect(result).toContain('Title');
         });
 
         it('更新がある場合に "New" タグが含まれること', () => {
             const list = [{ max_page: 10, cur_page: 5 }] as any;
             const result = buildTrList(list);
-            expect(result[0]).toContain('updated">New</span>');
+            expect(result).toContain('updated">New</span>');
         });
     });
 

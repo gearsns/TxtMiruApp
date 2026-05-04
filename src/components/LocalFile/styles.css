@@ -1,0 +1,11 @@
+:host {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+dt,
+dd {
+  margin: 0;
+}

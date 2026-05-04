@@ -1,17 +1,25 @@
+import { escapeHtml } from "@/shared";
+import html from "./main.html?raw"
+
+type ButtonOption = string | { className: string; value: string; text: string };
 
 export const buildHtml = (
-    message: string, 
+    htmlMessage: string,
     options: {
-        "buttons"?: string
-        | ({ className: string, value: string, text: string }
-            | string)[]
-    } = {}) => {
-    const buttons = typeof options["buttons"] === "undefined" ? ["OK"] : options["buttons"];
-    let html = "";
-    for (const button of buttons) {
-        html += (typeof button === "string")
-            ? `<button value="${button}">${button}</button>`
-            : `<button class="${button.className}" value="${button.value}">${button.text}</button>`
-    }
-    return `<div class="message-inner">${message}<div>${html}</div></div>`;
-}
+        buttons?: string | ButtonOption[]
+    } = {}
+) => {
+    const buttonList = Array.isArray(options.buttons)
+        ? options.buttons
+        : (options.buttons ? [options.buttons] : ["OK"]);
+    const htmlButtons = buttonList.map(btn => {
+        if (typeof btn === "string") {
+            const escaped = escapeHtml(btn);
+            return `<button value="${escaped}">${escaped}</button>`;
+        }
+        return `<button class="${escapeHtml(btn.className)}" value="${escapeHtml(btn.value)}">${escapeHtml(btn.text)}</button>`;
+    }).join("");
+    return html
+        .replace("%message%", htmlMessage)
+        .replace("%buttons%", htmlButtons);
+};

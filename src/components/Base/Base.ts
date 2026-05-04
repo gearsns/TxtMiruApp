@@ -5,7 +5,7 @@ export abstract class ModalBase extends HTMLElement {
     public onClose?: () => void;
     // 共通で使うShadowRootを保持
     protected root: ShadowRoot;
-    private _isEventsSetup = false;
+    private _abortController?: AbortController;
 
     constructor(html: string, css?: CSSStyleSheet | undefined) {
         super();
@@ -15,10 +15,12 @@ export abstract class ModalBase extends HTMLElement {
     }
 
     connectedCallback() {
-        if (!this._isEventsSetup) {
-            this.setupEvents();
-            this._isEventsSetup = true;
-        }
+        this._abortController = new AbortController();
+        this.setupEvents(this._abortController.signal);
+    }
+
+    disconnectedCallback() {
+        this._abortController?.abort();
     }
 
     // 共通の「閉じる」処理
@@ -30,23 +32,25 @@ export abstract class ModalBase extends HTMLElement {
     }
 
     protected setupRootEvents(
-        callback?: (pointTarget: string | undefined) => void) {
-        let pointTarget: EventTarget | null;
+        signal: AbortSignal,
+        callback?: (action: string | undefined) => void) {
+        let pointTarget: EventTarget | null = null;
         this.addEventListener("pointerdown", e => {
             const path = e.composedPath();
             pointTarget = path[0];
-        });
+        }, { signal });
         this.addEventListener("click", () => {
-            const id = (pointTarget as HTMLElement | null)?.closest("button")?.id;
-            if (pointTarget === this || id === "close") { this.hide(); }
-            else if (callback) { callback(id); }
+            const actionBtn = (pointTarget as HTMLElement | null)?.closest<HTMLElement>("[data-action]");
+            const action = actionBtn?.dataset.action;
+            if (pointTarget === this || action === "close") { this.hide(); }
+            else if (action && callback) { callback(action); }
             pointTarget = null;
-        });
+        }, { signal });
     }
 
     // 子クラスで必ず実装してもらうメソッド（抽象メソッド）
     public abstract show(): Promise<void> | void;
-    protected abstract setupEvents(): void;
+    protected abstract setupEvents(signal: AbortSignal): void;
 
     // Shadow DOM内の要素を型安全に取得するためのヘルパー
     protected getEl<T extends HTMLElement>(id: string): T {

@@ -20,10 +20,10 @@ export const convertElementsURL = (doc: Document, url: string): void => {
         }
     });
     // 3. 画像の処理
-    doc.querySelectorAll<HTMLImageElement>('img[src]').forEach(el => {
+    doc.querySelectorAll<HTMLImageElement>('img[src]:not([src^="data:"]):not([src^="http"])').forEach(el => {
         const src = el.getAttribute("src") || "";
         // data: 形式や http 形式でなければ変換
-        if (!src.startsWith("data:") && !src.startsWith("http")) {
+        if (src) {
             el.src = convertAbsoluteURL(url, src);
         }
         el.removeAttribute("width");
@@ -43,9 +43,9 @@ export const PreventEverything = (e: Event): void => {
     e.stopImmediatePropagation();
 }
 
-export const removeNodes = (remove_nodes: (Node | null)[] | NodeListOf<Element> | HTMLCollectionOf<Element>) => {
-    for (const e of remove_nodes) {
-        e?.parentNode?.removeChild(e);
+export const removeNodes = (nodes: (Node | null)[] | NodeListOf<Element> | HTMLCollectionOf<Element>) => {
+    for (const n of nodes) {
+        (n as Element)?.remove?.();
     }
 };
 
@@ -96,10 +96,10 @@ export const checkForcePager = (doc: Document, item: TxtMiruItem) => {
  */
 export const getPageNumber = (doc: Document, selector: string, targetUrl: string): number => {
     const elements = Array.from(doc.querySelectorAll(selector)) as HTMLAnchorElement[];
-    
+
     // 条件に一致する最初のインデックスを探す（見つからない場合は -1 が返る）
     const index = elements.findIndex(anchor => anchor.href.includes(targetUrl));
-    
+
     // 見つかれば 1 を足して返し、見つからなければ 0 を返す
     return index !== -1 ? index + 1 : 0;
 };

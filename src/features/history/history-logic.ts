@@ -2,32 +2,29 @@ import * as Shared from '@shared'
 import { Store } from "@/services/storage";
 import { History } from "@/types/history";
 
+const safeParseHistory = (json: string | undefined | null): History[] => {
+    if (!json) return [];
+    try {
+        const parsed = JSON.parse(json);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+};
 /**
  * URLによる履歴検索
  */
 export const getHistoryByUrl = (historyJson: string, curUrl: string | null): History | null => {
-    if (!historyJson || !curUrl) return null;
-    try {
-        const parsed = JSON.parse(historyJson) as History[];
-        return parsed.find((item) => item.url === curUrl) ?? null;
-    } catch {
-        return null;
-    }
+    if (!curUrl) return null;
+    const history = safeParseHistory(historyJson);
+    return history.find((item) => item.url === curUrl) ?? null;
 }
 
 /**
  * 履歴の更新（新規追加、重複排除、件数制限）
  */
 export const toHistorySettings = (currentHistoryJson: string | undefined, newEntry: History): string => {
-    let prevHistory: History[] = [];
-
-    if (currentHistoryJson) {
-        try {
-            prevHistory = JSON.parse(currentHistoryJson);
-        } catch {
-            prevHistory = [];
-        }
-    }
+    const prevHistory = safeParseHistory(currentHistoryJson);
 
     // 1. 新しいエントリを先頭にする
     // 2. 既存データから重複（同じURL）を除外

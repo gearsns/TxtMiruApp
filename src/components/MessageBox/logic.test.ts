@@ -7,7 +7,7 @@ describe('buildHtml', () => {
     const result = buildHtml('こんにちは');
     
     // 全体の構造をチェック
-    expect(result).toContain('<div class="message-inner">こんにちは');
+    expect(result).toContain('<div class="inner">こんにちは');
     // デフォルトのボタンをチェック
     expect(result).toContain('<button value="OK">OK</button>');
   });

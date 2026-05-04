@@ -56,10 +56,10 @@ describe('DOM Utils Test', () => {
   describe('retrieveLinesRectsRange', () => {
     it('指定した左右の範囲内に収まるRectのみを抽出すること', () => {
       const container = document.createElement('div');
-      container.innerHTML = 'Test Text';
+      container.textContent = 'Test Text';
       
-      const rectInside = { x: 50, width: 50 } as DOMRect;  // 範囲: 50 ~ 100
-      const rectOutside = { x: 200, width: 50 } as DOMRect; // 範囲: 200 ~ 250
+      const rectInside = { x: 50, width: 50, right: 100 } as DOMRect;  // 範囲: 50 ~ 100
+      const rectOutside = { x: 200, width: 50, right: 250 } as DOMRect; // 範囲: 200 ~ 250
 
       // 2つのRectを返すようにモック
       Range.prototype.getClientRects = vi.fn().mockReturnValue([rectInside, rectOutside]);

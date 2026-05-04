@@ -19,17 +19,12 @@ export interface NovelState {
 export const makeContents = (
     item: TxtMiruItem,
     url: string,
-    oldUrl: URL,
     state: NovelState,
-    scrollPos: number | string = 0,
-    isNoHistory = false
+    scrollPos: number | string = 0
 ) => {
     const { main, contents, menu } = Features.elements;
 
     initItem(item);
-    if (!isNoHistory) {
-        Shared.updateUrlParams(url, oldUrl);
-    }
 
     // クラス・属性の反映
     contents.className = `contents ${item.className}`;
@@ -57,10 +52,7 @@ export const makeContents = (
 
     // スクロール位置の復元
     Shared.adjustScrollPosition(main, scrollPos);
-
-    document.title = item.title ?? (import.meta.env.APP_FULL_TITLE as string);
-    state.setHistory(url, document.title);
-    setCurrentPage(url, item);
+    document.title = item.title || (import.meta.env.APP_FULL_TITLE as string);
 };
 
 /**
@@ -76,13 +68,7 @@ export const loadNovel = async (
     if (state.loader.isLoading) return;
 
     const { main, contents, menu } = Features.elements;
-
-    const completeLoading = () => {
-        state.loader.end();
-        main.focus();
-        menu.setPageUrl(document.title, url ?? "");
-        state.updateCacheIcon();
-    };
+    const targetUrl = url ?? "";
 
     Features.backgroundAbortController?.abort();
     const loading = { ...state.loader.begin(`取得中...`), cache: Features.localCacheList };
@@ -97,23 +83,24 @@ export const loadNovel = async (
 
     try {
         let item: TxtMiruItem | null = null;
-        const isIndex = !url || !url.includes(':');
+        const isIndex = !targetUrl.includes(':');
         if (isIndex) {
             // URLがない場合はインデックスを表示
             item = await TxtMiruSiteManager.GetDocument(loading, "TxtMiruIndex");
         } else {
-            const cacheUrl = url ? Shared.removeHash(url) : "";
-            item = Features.cacheFiles.Get(cacheUrl);
-            if (!item) {
-                item = await TxtMiruSiteManager.GetDocument(loading, url);
-                if (item && !item.nocache && !item.cancel) {
-                    item.url = cacheUrl;
-                    Features.cacheFiles.Set(item);
-                }
+            const cacheUrl = Shared.removeHash(targetUrl);
+            item = Features.cacheFiles.Get(cacheUrl)
+                || await TxtMiruSiteManager.GetDocument(loading, targetUrl);
+            if (item && !item.nocache && !item.cancel) {
+                item.url = cacheUrl;
+                Features.cacheFiles.Set(item);
             }
         }
         if (item) {
-            makeContents(item, url ?? "", oldUrl, state, scrollPos, isNoHistory);
+            makeContents(item, targetUrl, state, scrollPos);
+            if (!isNoHistory) Shared.updateUrlParams(targetUrl, oldUrl);
+            state.setHistory(targetUrl, document.title);
+            setCurrentPage(targetUrl, item);
         }
         if (isIndex) {
             Shared.removeUrlParam(oldUrl);
@@ -121,11 +108,14 @@ export const loadNovel = async (
     } catch (err) {
         console.error(err);
         const indexItem = await TxtMiruSiteManager.GetDocument(loading, "TxtMiruIndex");
-        if (indexItem) makeContents(indexItem, url ?? "", oldUrl, state, scrollPos, isNoHistory);
+        if (indexItem) makeContents(indexItem, targetUrl, state, scrollPos);
 
-        TxtMiruMessageBox.show(err ? `エラーが発生しました。<br>${url}` : `未対応のサイトです。<br>${url}`);
+        TxtMiruMessageBox.show(err ? `エラーが発生しました。<br>${targetUrl}` : `未対応のサイトです。<br>${targetUrl}`);
     } finally {
-        completeLoading();
+        state.loader.end();
+        main.focus();
+        menu.setPageUrl(document.title, targetUrl);
+        state.updateCacheIcon();
     }
 };
 
@@ -153,7 +143,7 @@ export const setCurrentPage = async (url: string, item: TxtMiruItem) => {
 
         // 2. DBから現在のお気に入り状態を取得
         const favorites = await db.getFavoriteByUrl(indexUrl, pageNo, url);
-        if (!favorites || favorites.length === 0) return;
+        if (favorites.length === 0) return;
 
         const currentFavorite = favorites[0];
         const savedPage = Number(currentFavorite.cur_page ?? 0);

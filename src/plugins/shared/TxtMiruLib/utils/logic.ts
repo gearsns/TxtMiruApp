@@ -8,24 +8,33 @@ export const splitStr = (str: string, separator: RegExp): (string | string[])[] 
     let match: RegExpExecArray | null;
 
     // globalフラグがない場合に無限ループを防ぐ
-    const re = separator.global ? separator : new RegExp(separator.source, separator.flags + 'g');
+    const flags = separator.global ? separator.flags : separator.flags + 'g';
+    const re = new RegExp(separator.source, flags);
 
     while ((match = re.exec(str)) !== null) {
-        const lastIndex = match.index + match[0].length;
-        if (lastIndex > lastLastIndex) {
-            if (lastLastIndex !== match.index) {
-                output.push(str.slice(lastLastIndex, match.index));
-            }
-            if (match.length > 1 && match.index < str.length) {
-                output.push(match.slice(1));
-            }
-            lastLastIndex = lastIndex;
+        const matchIndex = match.index;
+        const matchText = match[0];
+        const lastIndex = matchIndex + matchText.length;
+
+        // 1. セパレータより前の文字列を格納
+        if (lastLastIndex < matchIndex) {
+            output.push(str.slice(lastLastIndex, matchIndex));
         }
-        if (re.lastIndex === match.index) {
+
+        // 2. キャプチャグループが存在すれば格納
+        if (match.length > 1) {
+            output.push(match.slice(1));
+        }
+
+        lastLastIndex = lastIndex;
+
+        // 空文字マッチ（長さ0のマッチ）による無限ループを防止
+        if (re.lastIndex === matchIndex) {
             re.lastIndex++;
         }
     }
-    if (lastLastIndex !== str.length) {
+    // 3. 残りの文字列を格納
+    if (lastLastIndex < str.length) {
         output.push(str.slice(lastLastIndex));
     }
     return output;

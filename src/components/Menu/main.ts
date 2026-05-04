@@ -1,129 +1,104 @@
 import { AppActions } from "@/types/actions";
 import html from "./main.html?raw"
 import css from "./styles.css?inline"
-import { isOwnPage, sharedStyles } from '@shared';
+import { sharedStyles } from '@shared';
 import { UI } from "./constants";
+import { createMenuMapping, jumpToTarget } from "./logic";
 
-const createMenuMapping = (actions: AppActions, panel: HTMLElement): Record<string, () => void> => ({
-    [UI.SHOW]: () => actions.showMenu(!panel.classList.contains("active")),
-    [UI.FAVORITE]: actions.showFavorite,
-    [UI.CONFIG]: actions.showConfig,
-    [UI.OPEN]: actions.loadLocalFile,
-    [UI.PANEL]: () => actions.showMenu(false),
-    [UI.FIRST]: actions.pageTop,
-    [UI.PREV]: actions.pagePrev,
-    [UI.INDEX]: actions.gotoIndex,
-    [UI.NEXT]: actions.pageNext,
-    [UI.END]: actions.pageEnd,
-    [UI.URL]: actions.inputURL,
-    [UI.NEXT_EPISODE]: actions.gotoNextEpisode,
-    [UI.PREV_EPISODE]: actions.gotoPrevEpisodeOrIndex,
-    [UI.TOP_PAGE]: () => { actions.showMenu(false); actions.loadNovel(""); }
-});
-
-const jumpToTarget = (target: HTMLElement | null, actions: AppActions): boolean => {
-    const anchor = target?.closest('a') as HTMLAnchorElement;
-    const href = anchor?.getAttribute("href");
-    if (!href || !isOwnPage(href)) return false;
-    return actions.gotoUrl(href);
-}
-
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(css);
 export class Menu extends HTMLElement {
     protected root: ShadowRoot;
     protected actions?: AppActions;
     protected menuMapping?: Record<string, () => void>;
-    private _isEventsSetup = false;
+    private _abortController?: AbortController;
 
     constructor() {
         super();
-        const style = new CSSStyleSheet();
-        style.replaceSync(css);
         this.root = this.attachShadow({ mode: 'open' });
         this.root.innerHTML = html;
-        const styles: CSSStyleSheet[] = [sharedStyles, style];
-        this.root.adoptedStyleSheets = styles;
+        this.root.adoptedStyleSheets = [sharedStyles, sheet];
     }
 
     connectedCallback() {
-        if (!this._isEventsSetup) {
-            this.setupEvents();
-            this._isEventsSetup = true;
-        }
+        this._abortController = new AbortController();
+        this.setupEvents(this._abortController.signal);
+    }
+    disconnectedCallback() {
+        this._abortController?.abort();
     }
 
-    protected getEl<T extends HTMLElement>(id: string): T {
-        return this.root.getElementById(id) as T;
-    }
-    private setupEvents() {
-        let pointTarget: EventTarget | null;
+    private setupEvents(signal: AbortSignal) {
+        let pointTarget: EventTarget | null = null;
         this.addEventListener("pointerdown", e => {
             const path = e.composedPath();
             pointTarget = path[0];
-        });
+        }, { signal });
         this.addEventListener("click", (e) => {
             const target = pointTarget as HTMLElement | null;
-            const id = target?.closest("button")?.id;
             pointTarget = null;
 
-            if (this.actions && jumpToTarget(target, this.actions)) {
+            if (!this.actions || !this.menuMapping || !target) return;
+
+            if (jumpToTarget(target, this.actions)) {
                 e.preventDefault();
                 this.showMenu(false);
                 return;
             }
-            // IDでの判定
-            const action = id ? this.menuMapping?.[id] : null;
-            if (action) {
+
+            const actionBtn = target.closest<HTMLElement>("[data-action]");
+            const actionName = actionBtn?.dataset.action;
+            const action = actionName ? this.menuMapping?.[actionName] : null;
+            if (action && !this.hasAttribute(`disable-${actionName}`)) {
                 e.preventDefault();
                 e.stopImmediatePropagation();
                 action();
             }
-            if (target === this || target?.id === UI.PANEL){
+            if (target === this || actionName === UI.PANEL) {
                 this.showMenu(false);
             }
-        });
+        }, { signal });
     }
 
     public setActions(actions: AppActions) {
-        this.menuMapping = createMenuMapping(actions, this.getEl(UI.PANEL)!);
         this.actions = actions;
+        this.menuMapping = createMenuMapping(actions, this);
     }
 
     public showMenu(isActive: boolean) {
-        this.getEl(UI.SHOW).classList.toggle("active", isActive);
-        this.getEl(UI.PANEL).classList.toggle("active", isActive);
+        this.classList.toggle("active", isActive);
     }
 
-    public reflectSetting(theme: string, position: string, isHideEpisode: boolean, isHideIndex: boolean) {
-        this.getEl(UI.PREV_EPISODE).classList.toggle("hidden", isHideEpisode);
-        this.getEl(UI.NEXT_EPISODE).classList.toggle("hidden", isHideEpisode);
-        this.getEl(UI.INDEX).classList.toggle("hidden", isHideIndex);
-        this.setAttribute("theme", theme);
+    public reflectSetting(position: string, isHideEpisode: boolean, isHideIndex: boolean) {
+        this.toggleAttribute("hide-episode", isHideEpisode);
+        this.toggleAttribute("hide-index", isHideIndex);
         this.setAttribute("position", position);
     }
 
     public initPageButtons() {
-        [UI.NEXT_EPISODE, UI.PREV_EPISODE, UI.INDEX].forEach(id => {
-            (this.getEl<HTMLButtonElement>(id)).disabled = true;
-        });
-        this.getEl(UI.CUR_PAGE_URL).style.display = "inline";
+        // 全体を初期化中モードにする
+        this.toggleAttribute('is-initializing', true);
     }
 
     public setPageButtons(disabledIndex: boolean, disabledPrevEpisode: boolean, disabledNextEpisode: boolean) {
-        (this.getEl<HTMLButtonElement>(UI.INDEX)).disabled = disabledIndex;
-        (this.getEl<HTMLButtonElement>(UI.PREV_EPISODE)).disabled = disabledPrevEpisode;
-        (this.getEl<HTMLButtonElement>(UI.NEXT_EPISODE)).disabled = disabledNextEpisode;
+        // 初期化モードを解除
+        this.toggleAttribute('is-initializing', false);
+
+        // 各状態をクラスの toggle で制御
+        this.toggleAttribute('disable-index', disabledIndex);
+        this.toggleAttribute('disable-prev', disabledPrevEpisode);
+        this.toggleAttribute('disable-next', disabledNextEpisode);
     }
 
     public setPageUrl(title: string, url: string) {
-        const pageUrl = this.getEl<HTMLAnchorElement>(UI.CUR_PAGE_URL);
+        const pageUrl = this.root.getElementById(UI.CUR_PAGE_URL) as HTMLAnchorElement;
         pageUrl.textContent = title;
         pageUrl.href = url ?? "";
     }
 
     public setCachedStatus(status: 'loading' | 'cached' | null = null) {
-        const nextBtn = this.getEl(UI.NEXT_EPISODE);
-        nextBtn.classList.toggle("cached", status === 'cached');
-        nextBtn.classList.toggle("loading", status === 'loading');
+        this.toggleAttribute("cached", status === 'cached');
+        this.toggleAttribute("loading", status === 'loading');
     }
 }
 

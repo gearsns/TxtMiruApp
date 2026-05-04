@@ -4,12 +4,14 @@ import { getHtmlDocument, TryFetchText } from '../shared/utils/network'
 import { parseHtml } from '../html-parser'
 
 const AOZORA = "https://www.aozora.gr.jp";
+const RE_PAGE_PARAM = /\.html\?\d+$/;
+const RE_AOZORA_NOTE = /［＃(.*?)］/g;
 
-const IndexUrl = (url: string) => url.replace(/\.html\?\d+$/, ".html");
+const IndexUrl = (url: string) => url.replace(RE_PAGE_PARAM, ".html");
 
-const _ParseHtml = (url: string, indexUrl: string, html: string) => {
+const makeItem = (url: string, indexUrl: string, html: string) => {
     const processedHtml = html
-        .replace(/［＃(.*?)］/g, (_, content) => {
+        .replace(RE_AOZORA_NOTE, (_, content) => {
             if (content.includes('底本')) {
                 return `<sup title='${content}'>※</sup>`;
             }
@@ -19,7 +21,7 @@ const _ParseHtml = (url: string, indexUrl: string, html: string) => {
             }
             return "";
         })
-    const [item, _doc] = parseHtml(url, indexUrl, processedHtml, "Aozora");
+    const [item] = parseHtml(url, indexUrl, processedHtml, "Aozora");
     item["episode-index-text"] = item["top-title"];
     item["episode-index"] = (indexUrl !== url) ? indexUrl : AOZORA;
     if (indexUrl !== url) {
@@ -41,16 +43,16 @@ export class Aozora extends TxtMiruSitePlugin {
     Match = (url: string): boolean => url.startsWith(AOZORA);
     GetDocument = async (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem | null> => {
         const indexUrl = IndexUrl(url);
-        const html = this.#cache.Get(indexUrl)?.html;
-        return html
-            ? _ParseHtml(url, indexUrl, html)
-            : TryFetchText(txtMiru, url, { charset: "Auto" },
-                async (text: string) => this.makeItem(url, indexUrl, text)
-            );
-    }
-    private makeItem(url: string, indexUrl: string, text: string) {
-        this.#cache.Set({ url: indexUrl, html: text });
-        return _ParseHtml(url, indexUrl, text);
+        const cachedHtml = this.#cache.Get(indexUrl)?.html;
+        if (cachedHtml) {
+            return makeItem(url, indexUrl, cachedHtml);
+        }
+        return TryFetchText(txtMiru, url, { charset: "Auto" },
+            async (html: string) => {
+                this.#cache.Set({ url: indexUrl, html });
+                return makeItem(url, indexUrl, html);
+            }
+        );
     }
     GetInfo = async (txtMiru: TxtMiru, urls: string | string[], callback: ((urls: string[]) => void) | null = null): Promise<SitePluginInfo[] | null> => {
         const results: SitePluginInfo[] = [];
@@ -62,26 +64,29 @@ export class Aozora extends TxtMiruSitePlugin {
                 url: targetUrl,
                 charset: "Auto"
             }, txtMiru);
-            const getText = (cond: string[]) => {
+            const findText = (cond: string[]) => {
                 for (const id of cond) {
-                    const el = doc.querySelector(id) as HTMLElement
-                    if (el) {
-                        return el.innerText
+                    const el = doc.querySelector(id);
+                    if (el instanceof HTMLElement) {
+                        return el.innerText;
                     }
                 }
-                return ""
+                return "";
             }
             const item: SitePluginInfo = {
                 url,
                 max_page: 1,
-                name: getText([".title, h1"]),
-                author: getText([".author, h2"])
+                name: findText([".title, h1"]),
+                author: findText([".author, h2"])
             }
             for (const e of doc.getElementsByClassName("header") as HTMLCollectionOf<HTMLElement>) {
-                if (e.innerText === "作品名：") {
-                    item.name = (e.nextElementSibling as HTMLElement).innerText
-                } else if (e.innerText === "著者名：") {
-                    item.author = (e.nextElementSibling as HTMLElement).innerText
+                const label = (e as HTMLElement).textContent;
+                const value = (e.nextElementSibling as HTMLElement | null)?.innerText;
+                if (!value) continue;
+                if (e.textContent === "作品名：") {
+                    item.name = label;
+                } else if (e.textContent === "著者名：") {
+                    item.author = label;
                 }
             }
             item.max_page = doc.querySelectorAll('[class^="jisage"]:has(.naka-midashi)').length;
@@ -89,19 +94,19 @@ export class Aozora extends TxtMiruSitePlugin {
         }
         return results;
     }
-    GetPageNo = async (txtMiru: TxtMiru, url: string): Promise<{ url: string, page_no: number, index_url: string } | null> => {
+    GetPageNo = async (_txtMiru: TxtMiru, url: string): Promise<{ url: string, page_no: number, index_url: string } | null> => {
         if (!this.Match(url)) {
             return null;
         }
         const r = url.match(/^(.*\.html)\?(\d+)$/);
         return r
-            ? { url: url, page_no: parseInt(r[2]), index_url: r[1] }
-            : { url: url, page_no: 1, index_url: url }
+            ? { url, page_no: parseInt(r[2]), index_url: r[1] }
+            : { url, page_no: 1, index_url: url }
     }
     Name = () => "青空文庫"
 }
 
 /** @deprecated テスト専用。他ファイルで使用禁止。 */
 export const Tests = {
-    IndexUrl, _ParseHtml, resolveTargetUrl
+    IndexUrl, makeItem, resolveTargetUrl
 };

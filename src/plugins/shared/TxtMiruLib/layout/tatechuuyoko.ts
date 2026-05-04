@@ -1,59 +1,76 @@
 import { splitStr } from "../utils/logic";
 
+const replaceNodeWithList = (parent: HTMLElement, oldNode: ChildNode, nodes: (Text | HTMLSpanElement)[]): void => {
+    const fragment = document.createDocumentFragment();
+    for (const n of nodes) {
+        fragment.appendChild(n);
+    }
+    parent.replaceChild(fragment, oldNode);
+};
+
+const createTatechuyokoSpan = (text: string): HTMLSpanElement => {
+    const span = document.createElement("span");
+    span.className = "tatechuyoko";
+    span.textContent = text;
+    return span;
+};
+
+const NUMBER_PATTERN = "([0-9,\\.]+)";
+const REGEX_NUM = new RegExp(NUMBER_PATTERN);
+
 const tatechuuyokoNum = (node: ChildNode): number => {
-    if (node.nodeType === Node.TEXT_NODE && node.nodeValue) {
-        const parent = node.parentElement;
-        if (parent?.className === "tatechuyoko" || !/([0-9,\.]+)/.test(node.nodeValue)) {
-            return 0;
+    if (node instanceof Element) {
+        tatechuuyokoNumList(node.childNodes);
+        return 0;
+    }
+    if (!(node.nodeType === Node.TEXT_NODE && node.nodeValue)) return 0;
+
+    const parent = node.parentElement;
+    if (parent?.className === "tatechuyoko" || !REGEX_NUM.test(node.nodeValue)) {
+        return 0;
+    }
+
+    const arr = splitStr(node.nodeValue, REGEX_NUM);
+    if (arr.length === 0) return 0;
+
+    const itemList: (Text | HTMLSpanElement)[] = [];
+    let skipNum = 0;
+
+    for (let i = 0; i < arr.length; ++i) {
+        const current = arr[i];
+        if (skipNum > 0) {
+            --skipNum;
+            itemList.push(document.createTextNode(Array.isArray(current) ? (current as string[]).join("") : (current as string)));
+            continue;
         }
-
-        const itemList: (Text | HTMLSpanElement)[] = [];
-        const arr = splitStr(node.nodeValue, /([0-9,\.]+)/g);
-
-        if (arr.length > 0) {
-            let skipNum = 0;
-            for (let i = 0; i < arr.length; ++i) {
-                if (skipNum > 0) {
-                    --skipNum;
-                    itemList.push(document.createTextNode(Array.isArray(arr[i]) ? (arr[i] as string[]).join("") : (arr[i] as string)));
-                } else if (Array.isArray(arr[i])) {
-                    const text = (arr[i] as string[]).join("");
-                    // 西暦の日付チェック
-                    if (/^[0-9]{4}$/.test(text)) {
-                        const textDate = arr.slice(i).map(v => Array.isArray(v) ? v.join("") : v).join("");
-                        if (/^[0-9]{4}[\/ 年]+[0-9]{1,2}[\/ 月]+[0-9]{1,2}[ 日]+[0-9]{1,2}[\: ]+[0-9]{1,2}/.test(textDate)) {
-                            skipNum = 8;
-                            itemList.push(document.createTextNode(text));
-                            continue;
-                        } else if (/^[0-9]{4}[\/ 年]+[0-9]{1,2}[\/ 月]+[0-9]{1,2}[日]*/.test(textDate)) {
-                            skipNum = 4;
-                            itemList.push(document.createTextNode(text));
-                            continue;
-                        }
-                    }
-                    if (/[0-9]/.test(text) && text.length < 4) {
-                        const ltrElm = document.createElement("span");
-                        ltrElm.className = "tatechuyoko";
-                        ltrElm.appendChild(document.createTextNode(text));
-                        itemList.push(ltrElm);
-                    } else {
-                        itemList.push(document.createTextNode(text));
-                    }
-                } else {
-                    itemList.push(document.createTextNode(arr[i] as string));
+        if (Array.isArray(current)) {
+            const text = (current as string[]).join("");
+            // 西暦の日付チェック
+            if (/^\d{4}$/.test(text)) {
+                const textDate = arr.slice(i).map(v => Array.isArray(v) ? v.join("") : v).join("");
+                if (/^\d{4}[\/ 年]+\d{1,2}[\/ 月]+\d{1,2}[ 日]+\d{1,2}[\: ]+\d{1,2}/.test(textDate)) {
+                    skipNum = 8;
+                    itemList.push(document.createTextNode(text));
+                    continue;
+                } else if (/^\d{4}[\/ 年]+\d{1,2}[\/ 月]+\d{1,2}[日]*/.test(textDate)) {
+                    skipNum = 4;
+                    itemList.push(document.createTextNode(text));
+                    continue;
                 }
             }
-        }
-
-        if (itemList.length > 0 && parent) {
-            for (const newNode of itemList) {
-                parent.insertBefore(newNode, node);
+            if (/\d/.test(text) && text.length < 4) {
+                itemList.push(createTatechuyokoSpan(text));
+            } else {
+                itemList.push(document.createTextNode(text));
             }
-            parent.removeChild(node);
+        } else {
+            itemList.push(document.createTextNode(current as string));
         }
+    }
+
+    if (itemList.length > 0 && parent) {
+        replaceNodeWithList(parent, node, itemList);
         return itemList.length;
-    } else if (node instanceof Element) {
-        tatechuuyokoNumList(node.childNodes);
     }
     return 0;
 };
@@ -67,55 +84,53 @@ const tatechuuyokoNumList = (nodes: NodeListOf<ChildNode>): void => {
     }
 };
 
+const SYMBOL_PATTERN = "([‼‼︎！？⁈⁇⁉\\!\\?]+)";
+const REGEX_SYMBOL = new RegExp(SYMBOL_PATTERN);
+
 const tatechuuyokoSymbol = (node: ChildNode): void => {
-    if (node.nodeType === Node.TEXT_NODE && node.nodeValue) {
-        const parent = node.parentElement;
-        if (parent?.className === "tatechuyoko" || !node.nodeValue.match(/([‼‼︎！？⁈⁇⁉\!\?]+)/)) {
-            return;
-        }
+    if (node instanceof Element) {
+        tatechuuyokoSymbolList(node.childNodes);
+        return;
+    }
 
-        const itemList: (Text | HTMLSpanElement)[] = [];
-        let changed_tatechuyoko = false;
-        const arr = splitStr(node.nodeValue, /([‼‼︎！？⁈⁇⁉\!\?]+)/g);
+    if (!(node.nodeType === Node.TEXT_NODE && node.nodeValue)) return;
 
-        if (arr.length >= 1) {
-            let novert = false;
-            for (let i = 0; i < arr.length; ++i) {
-                const current = arr[i];
-                if (Array.isArray(current)) {
-                    const text = current.join("")
-                        .replace(/‼/g, "!!").replace(/︎︎‼︎/g, "!!").replace(/！/g, "!")
-                        .replace(/？/g, "?").replace(/⁈/g, "?!").replace(/⁇/g, "??").replace(/⁉/g, "!?");
-                    const arr2 = (text.length > 3) ? (text.match(/[\s\S]{1,2}/g) || []) : [text];
+    const parent = node.parentElement;
+    if (parent?.className === "tatechuyoko" || !REGEX_SYMBOL.test(node.nodeValue)) {
+        return;
+    }
 
-                    if (novert) {
-                        itemList.push(document.createTextNode(arr2.join("")));
-                    } else {
-                        for (const char of arr2) {
-                            changed_tatechuyoko = true;
-                            const ltrElm = document.createElement("span");
-                            ltrElm.className = "tatechuyoko";
-                            ltrElm.appendChild(document.createTextNode(char));
-                            itemList.push(ltrElm);
-                        }
-                    }
-                    novert = false;
-                } else {
-                    novert = !!(current as string).match(/[A-Za-z]\s*$/);
-                    itemList.push(document.createTextNode(current as string));
+    const arr = splitStr(node.nodeValue, REGEX_SYMBOL);
+
+    const itemList: (Text | HTMLSpanElement)[] = [];
+    let isChanged = false;
+    let novert = false;
+
+    for (let i = 0; i < arr.length; ++i) {
+        const current = arr[i];
+        if (Array.isArray(current)) {
+            const text = current.join("")
+                .replace(/‼/g, "!!").replace(/︎︎‼︎/g, "!!").replace(/！/g, "!")
+                .replace(/？/g, "?").replace(/⁈/g, "?!").replace(/⁇/g, "??").replace(/⁉/g, "!?");
+            const arr2 = (text.length > 3) ? (text.match(/[\s\S]{1,2}/g) || []) : [text];
+
+            if (novert) {
+                itemList.push(document.createTextNode(arr2.join("")));
+            } else {
+                for (const char of arr2) {
+                    isChanged = true;
+                    itemList.push(createTatechuyokoSpan(char));
                 }
             }
+            novert = false;
+        } else {
+            novert = /[A-Za-z]\s*$/.test(current as string);
+            itemList.push(document.createTextNode(current as string));
         }
+    }
 
-        if (changed_tatechuyoko && itemList.length > 0 && parent) {
-            for (const newNode of itemList) {
-                parent.insertBefore(newNode, node);
-            }
-            parent.removeChild(node);
-        }
-        return;
-    } else if (node instanceof Element) {
-        tatechuuyokoSymbolList(node.childNodes);
+    if (isChanged && parent) {
+        replaceNodeWithList(parent, node, itemList);
     }
 };
 

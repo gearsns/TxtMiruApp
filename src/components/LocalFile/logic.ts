@@ -1,39 +1,48 @@
+import { escapeHtml } from "@/shared";
 import { ExtendedFile } from "./types";
 
 export const extractExtendedFiles = async (
     data: DataTransfer | undefined | null
 ): Promise<ExtendedFile[] | null> => {
     const items = data?.items;
-    if (items) {
-        const fileList: ExtendedFile[] = [];
-        const traverseFileTree = async (entry: FileSystemFileEntry | FileSystemDirectoryEntry, path = ""): Promise<void> => {
-            if (entry.isFile) {
-                const file = await new Promise<ExtendedFile>((resolve) => (entry as FileSystemFileEntry).file(resolve));
-                file.fullpath = path + file.name;
-                fileList.push(file);
-            } else if (entry.isDirectory) {
-                const reader = (entry as FileSystemDirectoryEntry).createReader();
-                const entries = await new Promise<any[]>((resolve) => reader.readEntries(resolve));
-                for (const childEntry of entries) {
-                    await traverseFileTree(childEntry, path + entry.name + "/");
-                }
-            }
-        };
+    if (!items) return data?.files ? Array.from(data.files) : null;
 
-        for (const item of items) {
-            const entry = item.webkitGetAsEntry() as (FileSystemFileEntry | FileSystemDirectoryEntry | null);
-            if (entry) await traverseFileTree(entry);
+    const fileList: ExtendedFile[] = [];
+    const traverseFileTree = async (entry: FileSystemEntry, path = ""): Promise<void> => {
+        if (entry.isFile) {
+            const file = await new Promise<ExtendedFile>((resolve) => (entry as FileSystemFileEntry).file(resolve));
+            file.fullpath = path + file.name;
+            fileList.push(file);
+        } else if (entry.isDirectory) {
+            const reader = (entry as FileSystemDirectoryEntry).createReader();
+            // readEntriesをループさせて全件取得する
+            const getEntries = async (): Promise<FileSystemEntry[]> => {
+                const results: FileSystemEntry[] = [];
+                let read = async (): Promise<void> => {
+                    const entries = await new Promise<FileSystemEntry[]>((resolve) => reader.readEntries(resolve));
+                    if (entries.length > 0) {
+                        results.push(...entries);
+                        await read(); // まだあるかもしれないので再帰
+                    }
+                };
+                await read();
+                return results;
+            };
+
+            const entries = await getEntries();
+            // 子要素を並列で処理
+            await Promise.all(entries.map(child => traverseFileTree(child, `${path}${entry.name}/`)));
         }
+    };
 
-        if (fileList.length > 0) {
-            return fileList;
-        }
-    }
+    const rootPromises = Array.from(items)
+        .map(item => item.webkitGetAsEntry())
+        .filter((entry): entry is FileSystemEntry => entry !== null)
+        .map(entry => traverseFileTree(entry));
 
-    if (data?.files) {
-        return Array.from(data.files);
-    }
-    return null;
+    await Promise.all(rootPromises);
+
+    return fileList.length > 0 ? fileList : (data.files ? Array.from(data.files) : null);
 };
 
 const TEXT_TYPES = new Set(['htm', 'html', 'xhtml', 'txt', 'zip', 'epub']);
@@ -79,50 +88,44 @@ export const generateIndex = (
     url_list: { url: string; cache: TxtMiruItem; name: string }[], index_url: string
 ): TxtMiruItem[] => {
     // ソートロジック
-    const compareSeg = (a: string, b: string) => {
-        const a1 = a.match(/^(\d+)/);
-        const b1 = b.match(/^(\d+)/);
-        if (a1 && b1) {
-            const a11 = parseInt(a1[1]);
-            const b11 = parseInt(b1[1]);
-            return a11 === b11 ? a.localeCompare(b) : a11 - b11;
-        }
-        if (a1) return -1;
-        if (b1) return 1;
-        return a.localeCompare(b);
-    };
+    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
     url_list.sort((a, b) => {
-        const a0 = a.name.split('/');
-        const b0 = b.name.split('/');
-        const len = Math.min(a0.length, b0.length);
+        const aParts = a.name.split('/');
+        const bParts = b.name.split('/');
+        const len = Math.min(aParts.length, bParts.length);
+
         for (let i = 0; i < len; i++) {
-            const res = compareSeg(a0[i], b0[i]);
+            const res = collator.compare(aParts[i], bParts[i]);
             if (res !== 0) return res;
         }
-        return a0.length - b0.length;
+        return aParts.length - bParts.length;
     });
 
     // インデックスHTML生成
-    let title = url_list[0].name.match(/(.*?)\//)?.[1] || url_list[0].name;
+    const firstItemName = url_list[0].name;
+    const title = firstItemName.includes('/') ? firstItemName.split('/')[0] : firstItemName;
     const topFolder = `${title}/`;
-    const htmlArr = [`<h1 class='title'>${title}</h1>`, `<div class="index_box">`];
+    const htmlArr = [
+        `<h1 class='title'>${title}</h1>` +
+        `<div class="index_box">`
+    ];
     let preFolder = "";
 
     const caches: TxtMiruItem[] = [];
     for (const item of url_list) {
-        let name = item.name;
-        const match = item.name.match(/(.*)\/(.*)/);
-        if (match) {
-            name = match[2];
-            if (preFolder !== match[1]) {
-                let chapter = match[1];
-                if (chapter.startsWith(topFolder)) chapter = chapter.slice(topFolder.length);
-                if (chapter) htmlArr.push(`<dl class="novel_sublist2"><dd class="subtitle">${chapter}</dd></dl>`);
+        const name = item.name;
+        const lastSlashIndex = name.lastIndexOf('/');
+        const folderPath = lastSlashIndex !== -1 ? name.substring(0, lastSlashIndex) : "";
+        const displayName = lastSlashIndex !== -1 ? name.substring(lastSlashIndex + 1) : name;
+        if (folderPath) {
+            if (preFolder !== folderPath) {
+                const chapter = folderPath.startsWith(topFolder) ? folderPath.slice(topFolder.length) : folderPath;
+                if (chapter) htmlArr.push(`<dl class="novel_sublist2"><dd class="subtitle">${escapeHtml(chapter)}</dd></dl>`);
             }
-            preFolder = match[1];
+            preFolder = folderPath;
         }
-        htmlArr.push(`<dl class="novel_sublist2"><dd class="subtitle"><a href='${item.url.replace(/^txtmiru:\/\/localfile\//, '')}'>${name}</a></dd></dl>`);
+        htmlArr.push(`<dl class="novel_sublist2"><dd class="subtitle"><a href='${item.url.replace(/^txtmiru:\/\/localfile\//, '')}'>${escapeHtml(displayName)}</a></dd></dl>`);
         caches.push(item.cache);
     }
     htmlArr.push("</div>");

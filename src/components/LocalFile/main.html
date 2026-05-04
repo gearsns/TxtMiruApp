@@ -1,36 +1,4 @@
-<style>
-  :host {
-    position: fixed;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    box-sizing: border-box;
-    text-align: center;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    z-index: 3;
-  }
-
-  .url {
-    width: 70%;
-    max-width: 40em;
-  }
-
-  dt,
-  dd {
-    margin: auto;
-  }
-
-  .inner {
-    width: 90%;
-    padding: 10px;
-    font-size: 1.8rem;
-    text-align: center;
-    background: rgba(255, 255, 255, 0.8);
-  }
-</style>
-<div class="inner" id="inner">
+<div class="inner">
   <dl>
     <dt>テキストファイルまたはHTMLファイルを選択してください。</dt>
     <dd>
@@ -45,5 +13,5 @@
   <label><input type="radio" id="narou" name="type" value="narou">小説家になろう形式</label>
   <hr>
   <div id="message" style="color: red;"></div>
-  <button id="close">閉じる</button>
+  <button data-action="close">閉じる</button>
 </div>
