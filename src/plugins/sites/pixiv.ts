@@ -29,8 +29,9 @@ const _getNovelUrl = (url: string): string=> {
 
 const _getNovelData = async (url: string) => {
     const json = await novelAPI(_getNovelUrl(url));
-    const pageCount = json?.body?.seriesNavData?.order;
-    const seriesId = json?.body?.seriesNavData?.seriesId;
+    const seriesNavData = json?.body?.seriesNavData;
+    const pageCount = seriesNavData?.order;
+    const seriesId = seriesNavData?.seriesId;
     if (pageCount && seriesId){
         return  { pageCount, indexUrl: `${PIXIV}series/${seriesId}` };
     }
@@ -61,10 +62,11 @@ const makeItem = async (url: string, text: string, novelId: string | null, serie
             htmlArr.push(`<h3>目次</h3><ol class="novel-toc-items">`);
             do {
                 const json = await novelAPI(`${NOVELAPI}series_content/${novelId}?limit=20&last_order=${order}&order_by=asc&lang=ja`);
-                if (json.body.page.seriesContents.length <= 0) {
+                const seriesContents = json.body.page.seriesContents;
+                if (seriesContents.length <= 0) {
                     break;
                 }
-                const htmlString = json.body.page.seriesContents
+                const htmlString = seriesContents
                     .map((content: SeriesContent) => {
                         let dStr = "";
                         const ret = TxtMiruLib.formatDateString(`${content.reuploadTimestamp * 1000}`);

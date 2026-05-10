@@ -68,7 +68,7 @@ export class TxtMiruFavorite extends ModalBase {
 
     private async handleDelete(): Promise<void> {
         if (this.root.querySelector("#novel_list_body tr.check_on")) {
-            const e = await TxtMiruMessageBox.show("選択されているページをお気に入りから削除します。", { "buttons": [{ text: "削除", className: "seigaiha_blue", value: "delete" }, "削除しない"] });
+            const e = await TxtMiruMessageBox.show("選択されているページをお気に入りから削除します。", { "buttons": [{ text: "削除", className: "blue", value: "delete" }, "削除しない"] });
             if (e !== "delete") { return; }
             this.loader.begin();
             for (const tr of this.root.querySelectorAll("#novel_list_body tr.check_on")) {

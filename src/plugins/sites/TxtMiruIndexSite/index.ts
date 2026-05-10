@@ -61,12 +61,13 @@ export class TxtMiruIndexSite extends TxtMiruSitePlugin {
             "next-episode": "./index.html",
         };
 
+        const setting = db.setting;
         const localHistoryList = getHistoryViewData(
-            db.setting[Shared.DB.LOCAL_HISTORY],
-            db.setting[Shared.DB.LOCAL_HISTORY_INDEX]
+            setting[Shared.DB.LOCAL_HISTORY],
+            setting[Shared.DB.LOCAL_HISTORY_INDEX]
         );
         const globalHistoryList = getHistoryViewData(
-            db.setting[Shared.DB.HISTORY]
+            setting[Shared.DB.HISTORY]
         );
 
         let html = topHtml;

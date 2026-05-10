@@ -33,17 +33,17 @@ export abstract class ModalBase extends HTMLElement {
 
     protected setupRootEvents(
         signal: AbortSignal,
-        callback?: (action: string | undefined) => void) {
+        callback?: (action: string | undefined, e: Event, target: HTMLElement | null) => void) {
         let pointTarget: EventTarget | null = null;
         this.addEventListener("pointerdown", e => {
             const path = e.composedPath();
             pointTarget = path[0];
         }, { signal });
-        this.addEventListener("click", () => {
+        this.addEventListener("click", (e: Event) => {
             const actionBtn = (pointTarget as HTMLElement | null)?.closest<HTMLElement>("[data-action]");
-            const action = actionBtn?.dataset.action;
-            if (pointTarget === this || action === "close") { this.hide(); }
-            else if (action && callback) { callback(action); }
+            const actionName = actionBtn?.dataset?.action;
+            if (pointTarget === this || actionName === "close") { this.hide(); }
+            else if (actionName && callback) { callback(actionName, e, actionBtn); }
             pointTarget = null;
         }, { signal });
     }

@@ -34,6 +34,7 @@ export const convertRuby = (doc: Document): void => {
                 .replace(/゛/g, "\u3099").replace(/／＼/g, "\u3033\u3035")
                 .replace(/／″＼/g, "\u3034\u3035").replace(/゜/g, "\u209A");
             item.setAttribute("data-ruby", rtText);
+            const style = item.style;
 
             if (!/^[A-Za-z0-9 -/:-@\[-~]+$/.test(rtText)) {
                 const rtLen = rtText.length;
@@ -42,26 +43,26 @@ export const convertRuby = (doc: Document): void => {
                     if (/^・+$/.test(rtText)) {
                         item.setAttribute("rt-emphasis", "");
                         item.setAttribute("data-ruby", rtText.replace(/・/g, "﹅"));
-                        setRubyStyle(item.style, 1.5, 0.525, -0.25);
+                        setRubyStyle(style, 1.5, 0.525, -0.25);
                     } else {
                         item.setAttribute("rt-spacing", "");
-                        setRubyStyle(item.style, 1, 0.5, 0);
+                        setRubyStyle(style, 1, 0.5, 0);
                     }
                 } else if (rtLen > 2 && rtLen < rbHeight) {
                     const sp = (rbHeight - rtLen) / rtLen;
                     item.setAttribute("rt-spacing", "");
-                    setRubyStyle(item.style, sp, sp / 2, 0);
+                    setRubyStyle(style, sp, sp / 2, 0);
                 } else if (rtLen === 2 && rtLen < rbHeight) {
                     const sp = (rbHeight / 2);
                     item.setAttribute("rt-spacing", "");
-                    setRubyStyle(item.style, sp, 0, sp / 2);
+                    setRubyStyle(style, sp, 0, sp / 2);
                 } else if (rtLen > rbHeight) { // ルビの方が長い
                     const sp = (rtLen - rbHeight) / (rbHeight / 2 + 1) / 2;
                     item.setAttribute("rt-spacing", "");
-                    item.style.setProperty("letter-spacing", `${sp * 2}em`);
-                    item.style.setProperty("margin-top", `${sp}em`);
-                    item.style.setProperty("margin-bottom", `-${sp}em`);
-                    setRubyStyle(item.style, 0, -sp * 2, sp / 2);
+                    style.setProperty("letter-spacing", `${sp * 2}em`);
+                    style.setProperty("margin-top", `${sp}em`);
+                    style.setProperty("margin-bottom", `-${sp}em`);
+                    setRubyStyle(style, 0, -sp * 2, sp / 2);
                 } else if (rtLen === 1 && rtLen === rbLen) {
                     if (/^・+$/.test(rtText)) {
                         item.setAttribute("rt-emphasis", "");

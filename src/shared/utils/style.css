@@ -61,7 +61,7 @@ button:disabled {
   cursor: not-allowed;
 }
 
-button.seigaiha_blue {
+button.blue {
   background: rgb(38, 126, 167);
 }
 
@@ -73,6 +73,6 @@ button.delete {
   background-color: #dc3545;
 }
 
-button.goto2 {
+button.index {
   background-color: #17a2b8;
 }

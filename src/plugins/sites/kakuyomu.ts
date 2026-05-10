@@ -136,15 +136,16 @@ const makeItem = (url: string, rawText: string) => {
     TxtMiruLib.createPager(url, doc, item, (anchor) => {
         const action = anchor.getAttribute("data-link-click-action-name");
         const itemProp = anchor.getAttribute("itemprop");
+        const style = anchor.style;
         if (action === "WorksEpisodesEpisodeHeaderPreviousEpisode") {
-            anchor.style.display = "none";
+            style.display = "none";
             return "prev";
         } else if (action === "WorksEpisodesEpisodeFooterNextEpisode") {
-            anchor.style.display = "none";
+            style.display = "none";
             return "next";
         } else if (itemProp === "item") {
             title = `<a class="kakuyomu_title" href="${anchor.href}">${anchor.getAttribute("title")}</a>`;
-            anchor.style.display = "none";
+            style.display = "none";
             return "index";
         }
         return null;

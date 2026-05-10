@@ -31,15 +31,16 @@ const makeItem = (url: string, doc: Document) => {
         const action = anchor.getAttribute("data-link-click-action-name");
         const itemProp = anchor.getAttribute("itemprop");
         const text = anchor.textContent;
+        const style = anchor.style;
         if (text.includes("次へ") || action === "WorksEpisodesEpisodeFooterNextEpisode") {
-            anchor.style.display = "none";
+            style.display = "none";
             return "next";
         } else if (text.includes("前へ") || action === "WorksEpisodesEpisodeHeaderPreviousEpisode") {
-            anchor.style.display = "none";
+            style.display = "none";
             return "prev";
         } else if (itemProp === "item") {
             title = `<a class="novel_title" href="${href}">${anchor.getAttribute("title")}</a>`;
-            anchor.style.display = "none";
+            style.display = "none";
             return "index";
         }
         return null;

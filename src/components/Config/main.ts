@@ -30,7 +30,7 @@ export class TxtMiruConfig extends ModalBase {
 
     private async handleReset(): Promise<void> {
         const res = await TxtMiruMessageBox.show("デフォルトの設定に戻します。", {
-            "buttons": [{ text: "戻す", className: "seigaiha_blue", value: "reset" }, "戻さない"]
+            "buttons": [{ text: "戻す", className: "blue", value: "reset" }, "戻さない"]
         });
         if (res === "reset") {
             this.setValue();

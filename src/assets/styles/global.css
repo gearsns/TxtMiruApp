@@ -491,9 +491,13 @@ p {
     border-left: 1px solid var(--chapter-bk-color);
   }
 
+  ul.subtitles {
+    padding: 0;
+  }
+
   .subtitles li.chapter,
   .p-eplist__chapter-title {
-    margin-top: -2em;
+    margin-top: 0;
     padding: 1em 1em 0 1em;
     font-weight: bold;
     padding-top: 0.8em;
@@ -507,6 +511,8 @@ p {
   .subtitles li,
   .p-eplist__sublist {
     list-style-type: none;
+    margin-top: 2em;
+    margin-right: 2px;
     border-right: 1px solid var(--chapter-bk-color)
   }
 
@@ -647,7 +653,7 @@ p {
     list-style-type: none;
     border-right: 1px solid var(--chapter-bk-color);
 
-    chapter {
+    &.chapter {
       margin-top: -2em;
       padding: 1em 1em 0 1em;
       font-weight: bold;
