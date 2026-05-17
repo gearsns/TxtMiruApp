@@ -33,6 +33,6 @@ export const TxtMiruMessageBox = {
                 close(false);
             }
         }, { signal });
-        document.body.appendChild(container);
+        document.body.append(container);
     })
 }

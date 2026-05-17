@@ -25,12 +25,12 @@ const build = (url: string, indexUrl: string, mainE: Element, doc: Document, ite
                 const eCtitle = doc.createElement("div");
                 eCtitle.className = "chapter_title";
                 eCtitle.innerHTML = `<a href="${relativeIndexUrl}?${index + 1}">${sub_html}</a>`;
-                eDiv.appendChild(eCtitle);
+                eDiv.append(eCtitle);
             } else {
                 const eDlStitle = doc.createElement("dl");
                 eDlStitle.className = "novel_sublist2";
                 eDlStitle.innerHTML = `<dd class="subtitle"><a href="${relativeIndexUrl}?${index + 1}">${sub_html}</a></dd>`;
-                eDiv.appendChild(eDlStitle);
+                eDiv.append(eDlStitle);
             }
             if (index === 0) {
                 setItemEpisodeText("next-episode", `${indexUrl}?1`, sub_html || "次へ", item);
@@ -38,9 +38,9 @@ const build = (url: string, indexUrl: string, mainE: Element, doc: Document, ite
         });
         for (const el of mainE.childNodes as NodeListOf<HTMLElement>) {
             if (el === firstEl) break;
-            fragment.appendChild(el.cloneNode(true));
+            fragment.append(el.cloneNode(true));
         }
-        fragment.appendChild(eDiv);
+        fragment.append(eDiv);
     } else if (targetNo > 0) {
         let isContent = true;
         const firstEl = midashiList[0];
@@ -60,10 +60,10 @@ const build = (url: string, indexUrl: string, mainE: Element, doc: Document, ite
             if (el.className === "title") {
                 const e_anchor = document.createElement("a");
                 e_anchor.href = relativeIndexUrl;
-                e_anchor.appendChild(el);
-                fragment.appendChild(e_anchor);
+                e_anchor.append(el);
+                fragment.append(e_anchor);
             } else {
-                fragment.appendChild(el.cloneNode(true));
+                fragment.append(el.cloneNode(true));
             }
         }
         const headingEl = getHeadingEl(startEl);
@@ -77,7 +77,7 @@ const build = (url: string, indexUrl: string, mainE: Element, doc: Document, ite
         }
     }
     mainE.textContent = "";
-    mainE.appendChild(fragment);
+    mainE.append(fragment);
 }
 
 export const parseHtml = (url: string, index_url: string, html: string, class_name: string): [TxtMiruItem, Document] => {

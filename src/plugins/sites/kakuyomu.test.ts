@@ -48,7 +48,7 @@ describe('Kakuyomu Plugin', () => {
         const script = doc.createElement('script')
         script.id = '__NEXT_DATA__'
         script.innerHTML = JSON.stringify(mockNextData)
-        doc.body.appendChild(script)
+        doc.body.append(script)
 
         // 非公開関数や makeItem 内のロジックを確認するために、
         // 必要に応じて GetToc を export するか、plugin 経由でテストします。

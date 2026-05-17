@@ -23,6 +23,7 @@ const escape_mark = (node: ChildNode): void => {
             .replace(/゜/g, "\u309A")
             .replace(/／＼/g, "\u3033\u3035")
             .replace(/／″＼/g, "\u3034\u3035")
+            .replace(/(?<=[「『])[ 　]+/g, "")
             .replace(/[ 　。]+(?=」|』)/g, "")
             .replace(/\(笑\)/g, "（笑）");
 
@@ -39,16 +40,15 @@ const escape_mark = (node: ChildNode): void => {
                     const elm_dakuten = document.createElement("span");
                     elm_dakuten.className = DAKUTEN_CLASS;
                     elm_dakuten.textContent = text.substring(0, text.length - 1);
-                    fragment.appendChild(elm_dakuten);
+                    fragment.append(elm_dakuten);
                 } else {
-                    fragment.appendChild(document.createTextNode(text));
+                    fragment.append(text);
                 }
             } else {
-                fragment.appendChild(document.createTextNode(item as string));
+                fragment.append(item as string);
             }
         }
-        parent.insertBefore(fragment, node);
-        parent.removeChild(node);
+        node.replaceWith(fragment);
     } else if (node instanceof Element && node.tagName !== "RT") {
         escapeMarkList(node.childNodes);
     }

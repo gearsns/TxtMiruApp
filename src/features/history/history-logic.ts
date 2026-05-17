@@ -28,11 +28,11 @@ export const toHistorySettings = (currentHistoryJson: string | undefined, newEnt
 
     // 1. 新しいエントリを先頭にする
     // 2. 既存データから重複（同じURL）を除外
-    // 3. 最大5件まで取得
+    // 3. 最大10件まで取得
     const updatedHistory = [
         newEntry,
         ...prevHistory.filter((item) => item.url !== newEntry.url)
-    ].slice(0, 5);
+    ].slice(0, 10);
 
     return JSON.stringify(updatedHistory);
 };

@@ -9,9 +9,6 @@ export const counterJapaneseHyphenation = (doc: Document): void => {
     const nodes = Array.from(doc.querySelectorAll<HTMLElement>("[data-ruby], .tatechuyoko"));
 
     for (const el of nodes) {
-        const parent = el.parentNode;
-        if (!parent) continue;
-
         const previousNode = el.previousSibling;
         const nextNode = el.nextSibling;
         let nextMoveNode: ChildNode | null = null;
@@ -51,17 +48,16 @@ export const counterJapaneseHyphenation = (doc: Document): void => {
         const wrapper = doc.createElement("span");
         wrapper.style.display = "inline-block";
         wrapper.style.textIndent = "0";
-        parent.insertBefore(wrapper, el);
-        if (previousText) wrapper.appendChild(doc.createTextNode(previousText));
-        wrapper.appendChild(el);
+        el.before(wrapper);
+        wrapper.append(previousText, el);
         if (nextText) {
-            wrapper.appendChild(doc.createTextNode(nextText));
+            wrapper.append(nextText);
             continue;
         }
         if (!nextMoveNode) {
             continue;
         }
-        wrapper.appendChild(nextMoveNode);
+        wrapper.append(nextMoveNode);
         const follower = wrapper.nextSibling;
         if (!follower) {
             continue;
@@ -69,11 +65,11 @@ export const counterJapaneseHyphenation = (doc: Document): void => {
         if (follower.nodeType === Node.TEXT_NODE) {
             const val = follower.nodeValue || "";
             // 最初の1文字だけをwrapperへ、残りは元の場所に残す
-            wrapper.appendChild(doc.createTextNode(val.charAt(0)));
+            wrapper.append(val.charAt(0));
             follower.nodeValue = val.slice(1);
             continue;
         }
         // テキストでなければ要素ごと移動（画像や別のspanなど）
-        wrapper.appendChild(follower);
+        wrapper.append(follower);
     }
 };

@@ -38,7 +38,7 @@ describe('DOM Utils Test', () => {
     it('テキストノードからRectを取得できること', () => {
       const container = document.createElement('div');
       container.innerHTML = '<span>Hello</span>';
-      document.body.appendChild(container);
+      document.body.append(container);
 
       // jsdomではgetClientRectsは空を返すため、モックを注入
       const mockRect = { x: 0, y: 0, width: 50, height: 20 } as DOMRect;

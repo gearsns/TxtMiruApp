@@ -27,7 +27,7 @@ export class TxtMiruLoading extends HTMLElement {
             }
         });
 
-        shadow.appendChild(this.loadingElement);
+        shadow.append(this.loadingElement);
     }
 
     public get isLoading(): boolean {
@@ -54,7 +54,7 @@ export class TxtMiruLoading extends HTMLElement {
         const signal = this._abortController.signal;
         this.update(messages);
         if (!this.isConnected) {
-            document.body.appendChild(this);
+            document.body.append(this);
         }
         this.loadingElement.classList.remove("hide");
 

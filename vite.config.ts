@@ -40,6 +40,7 @@ export default defineConfig(({ mode }) => {
           background_color: '#fff',
           theme_color: '#fff',
           display: 'standalone',
+          display_override: ["window-controls-overlay", "minimal-ui"],
           id: 'index',
           start_url: 'index.html',
           orientation: 'portrait',

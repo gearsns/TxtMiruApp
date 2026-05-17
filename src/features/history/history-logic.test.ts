@@ -19,17 +19,17 @@ describe('History Utils', () => {
     });
 
     describe('toHistorySettings', () => {
-        it('新しいエントリを先頭に追加し、5件以内に制限すべき', () => {
+        it('新しいエントリを先頭に追加し、10件以内に制限すべき', () => {
             const prev = JSON.stringify([
-                { url: '1' }, { url: '2' }, { url: '3' }, { url: '4' }, { url: '5' }
+                { url: '1' }, { url: '2' }, { url: '3' }, { url: '4' }, { url: '5' }, { url: '6' }, { url: '7' }, { url: '8' }, { url: '9' }, { url: '10' }
             ]);
             const newEntry = { url: 'new', name: 'New' } as any;
 
             const result = JSON.parse(toHistorySettings(prev, newEntry));
 
             expect(result[0].url).toBe('new');
-            expect(result.length).toBe(5);
-            expect(result.map((i: any) => i.url)).not.toContain('5'); // 古いものが消える
+            expect(result.length).toBe(10);
+            expect(result.map((i: any) => i.url)).not.toContain('10'); // 古いものが消える
         });
 
         it('重複するURLがある場合、古い方を削除して最新を先頭にすべき', () => {

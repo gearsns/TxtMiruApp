@@ -76,7 +76,7 @@ describe('Scroll Utilities', () => {
             anchor.getBoundingClientRect = vi.fn(() => ({
                 right: 1500,
             } as DOMRect));
-            document.body.appendChild(anchor);
+            document.body.append(anchor);
 
             // 期待値: -1000 (clientWidth) + 1500 (right) + 0 (scrollLeft) = 500
             adjustScrollPosition(element, '#test-anchor');

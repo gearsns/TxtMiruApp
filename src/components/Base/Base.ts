@@ -67,7 +67,7 @@ export const createAndOpen = <T extends ModalBase>(
 ): T => {
     const el = document.createElement(tagName) as T;
     setup(el);
-    document.body.appendChild(el);
+    document.body.append(el);
     el.show();
     return el;
 }

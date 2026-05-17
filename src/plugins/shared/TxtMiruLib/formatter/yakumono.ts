@@ -20,17 +20,15 @@ const yakumonoSpace = (node: ChildNode): void => {
                     const elm_yakumono = document.createElement("span");
                     elm_yakumono.className = YAKUMONO_CLASS;
                     elm_yakumono.textContent = text.substring(0, text.length - 1);
-                    fragment.appendChild(elm_yakumono);
-                    fragment.appendChild(document.createTextNode(text.substring(text.length - 1)));
+                    fragment.append(elm_yakumono, text.substring(text.length - 1));
                 } else {
-                    fragment.appendChild(document.createTextNode(text));
+                    fragment.append(text);
                 }
             } else {
-                fragment.appendChild(document.createTextNode(item as string));
+                fragment.append(item as string);
             }
         }
-        parent.insertBefore(fragment, node);
-        parent.removeChild(node);
+        node.replaceWith(fragment);
     } else if (node instanceof Element) {
         yakumonoSpaceList(node.childNodes);
     }

@@ -1,9 +1,9 @@
 ## TxtMiru App
 
-TxtMiru App は、TxtMiru on the WebのPWA対応版で同じようにブラウザ上でネット小説「小説家になろう」、「カクヨム」、「青空文庫」を縦組み表示にして読むことができるできます。
+TxtMiru App は、TxtMiru on the WebのPWA対応版で同じようにブラウザ上で小説を縦組み表示にして読むことができます。
 
 
-   ![](public/images/TxtMiru.png)
+   ![](images/TxtMiru.png)
 
 
 ### 使い方
@@ -14,11 +14,11 @@ TxtMiru App は、TxtMiru on the WebのPWA対応版で同じようにブラウ�
 
    「≡」ボタンを押下
 
-   ![](public/images/TxtMiruMenu1.png)
+   ![](images/TxtMiruMenu1.png)
 
    「URL」ボタンを押下
 
-   ![](public/images/TxtMiruMenu2.png)
+   ![](images/TxtMiruMenu2.png)
 
 3. URLを入力して、「開く」ボタンを押下
 
@@ -39,7 +39,7 @@ TxtMiru App は、TxtMiru on the WebのPWA対応版で同じようにブラウ�
 
 2. お気に入り
 
-   ![](public/images/TxtMiruFavorite.png)
+   ![](images/TxtMiruFavorite.png)
 
    よく見るサイトをお気に入りとして登録できます。
    「最新の情報に更新」機能を使用すると小説の総ページ数が最新の物に更新されます。

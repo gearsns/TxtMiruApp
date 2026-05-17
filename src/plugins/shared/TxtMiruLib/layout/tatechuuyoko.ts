@@ -1,11 +1,7 @@
 import { splitStr } from "../utils/logic";
 
-const replaceNodeWithList = (parent: HTMLElement, oldNode: ChildNode, nodes: (Text | HTMLSpanElement)[]): void => {
-    const fragment = document.createDocumentFragment();
-    for (const n of nodes) {
-        fragment.appendChild(n);
-    }
-    parent.replaceChild(fragment, oldNode);
+const replaceNodeWithList = (oldNode: ChildNode, nodes: (Node | string)[]): void => {
+    oldNode.replaceWith(...nodes);
 };
 
 const createTatechuyokoSpan = (text: string): HTMLSpanElement => {
@@ -33,14 +29,14 @@ const tatechuuyokoNum = (node: ChildNode): number => {
     const arr = splitStr(node.nodeValue, REGEX_NUM);
     if (arr.length === 0) return 0;
 
-    const itemList: (Text | HTMLSpanElement)[] = [];
+    const itemList: (Node | string)[] = [];
     let skipNum = 0;
 
     for (let i = 0; i < arr.length; ++i) {
         const current = arr[i];
         if (skipNum > 0) {
             --skipNum;
-            itemList.push(document.createTextNode(Array.isArray(current) ? (current as string[]).join("") : (current as string)));
+            itemList.push(Array.isArray(current) ? (current as string[]).join("") : (current as string));
             continue;
         }
         if (Array.isArray(current)) {
@@ -50,26 +46,26 @@ const tatechuuyokoNum = (node: ChildNode): number => {
                 const textDate = arr.slice(i).map(v => Array.isArray(v) ? v.join("") : v).join("");
                 if (/^\d{4}[\/ 年]+\d{1,2}[\/ 月]+\d{1,2}[ 日]+\d{1,2}[\: ]+\d{1,2}/.test(textDate)) {
                     skipNum = 8;
-                    itemList.push(document.createTextNode(text));
+                    itemList.push(text);
                     continue;
                 } else if (/^\d{4}[\/ 年]+\d{1,2}[\/ 月]+\d{1,2}[日]*/.test(textDate)) {
                     skipNum = 4;
-                    itemList.push(document.createTextNode(text));
+                    itemList.push(text);
                     continue;
                 }
             }
             if (/\d/.test(text) && text.length < 4) {
                 itemList.push(createTatechuyokoSpan(text));
             } else {
-                itemList.push(document.createTextNode(text));
+                itemList.push(text);
             }
         } else {
-            itemList.push(document.createTextNode(current as string));
+            itemList.push(current as string);
         }
     }
 
-    if (itemList.length > 0 && parent) {
-        replaceNodeWithList(parent, node, itemList);
+    if (itemList.length > 0) {
+        replaceNodeWithList(node, itemList);
         return itemList.length;
     }
     return 0;
@@ -102,7 +98,7 @@ const tatechuuyokoSymbol = (node: ChildNode): void => {
 
     const arr = splitStr(node.nodeValue, REGEX_SYMBOL);
 
-    const itemList: (Text | HTMLSpanElement)[] = [];
+    const itemList: (Node | string)[] = [];
     let isChanged = false;
     let novert = false;
 
@@ -115,7 +111,7 @@ const tatechuuyokoSymbol = (node: ChildNode): void => {
             const arr2 = (text.length > 3) ? (text.match(/[\s\S]{1,2}/g) || []) : [text];
 
             if (novert) {
-                itemList.push(document.createTextNode(arr2.join("")));
+                itemList.push(arr2.join(""));
             } else {
                 for (const char of arr2) {
                     isChanged = true;
@@ -125,12 +121,12 @@ const tatechuuyokoSymbol = (node: ChildNode): void => {
             novert = false;
         } else {
             novert = /[A-Za-z]\s*$/.test(current as string);
-            itemList.push(document.createTextNode(current as string));
+            itemList.push(current as string);
         }
     }
 
-    if (isChanged && parent) {
-        replaceNodeWithList(parent, node, itemList);
+    if (isChanged) {
+        replaceNodeWithList(node, itemList);
     }
 };
 
