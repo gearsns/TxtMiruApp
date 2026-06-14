@@ -399,6 +399,10 @@ p {
   display: list-item;
   list-style: cjk-ideographic;
   margin-top: 1.3em;
+
+  &.index {
+    display: block;
+  }
 }
 
 #TxtMiruTopContentsLocalHistoryList.hide,
@@ -552,6 +556,12 @@ p {
     margin-bottom: 1em;
     background-color: var(--pager-link-color);
     text-decoration: none;
+  }
+
+  .p-novel__text--afterword, .l-foot-contents {
+    border: 1px solid var(--text-color);
+    margin: 0 1rem;
+    padding: 0.5rem;
   }
 }
 

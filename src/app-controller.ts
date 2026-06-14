@@ -1,6 +1,6 @@
 import * as Features from '@features';
 import * as Components from '@components';
-import { EPISODE, EpisodeAction } from '@shared';
+import { EPISODE, EpisodeAction, getNovelUrl } from '@shared';
 import { db } from './services/storage';
 import { AppActions } from './types/actions';
 
@@ -14,7 +14,7 @@ export const createAppContext = (popupManager: {
     const state: Features.NovelState = {
         loader: new Components.TxtMiruLoading(),
         isPrefetch: false,
-        setHistory: (checkUrl: string | null, title: string) => Features.createEntry(main, db, checkUrl, title),
+        setHistory: () => Features.createEntry(main, db, getNovelUrl(), document.title),
         updateCacheIcon: () => Features.updateIcon(contents.getAttribute(EPISODE.NEXT))
     };
 

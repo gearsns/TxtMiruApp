@@ -109,7 +109,6 @@ describe('Novel Logic Tests', () => {
             expect(TxtMiruSiteManager.GetDocument).toHaveBeenCalled();
             expect(Features.cacheFiles.Set).toHaveBeenCalledWith(expect.objectContaining({ title: 'Test' }));
             expect(mockState.loader.end).toHaveBeenCalled();
-            expect(mockState.setHistory).toHaveBeenCalledWith(url, 'Test');
         });
 
         it('読込中(isLoading: true)の場合は処理を中断すること', async () => {

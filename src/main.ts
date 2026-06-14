@@ -36,7 +36,7 @@ const Start = async () => {
     const handleNavigation = () => {
         const novelUrl = Shared.getNovelUrl();
         if (!novelUrl) {
-            loadNovelWrapper();
+            loadNovelWrapper(undefined, undefined, true);
             return;
         }
         const scrollPos = Features.getHistoryByUrl(db.setting[Shared.DB.HISTORY], novelUrl)?.scroll_pos ?? 0;

@@ -6,8 +6,7 @@ export const bindAppEvents = (state: Features.NovelState, cacheLoadFn: Function)
     const { main, pageEffect } = Features.elements;
 
     const saveScrollPosition = () => {
-        const curUrl = new URL(window.location.toString());
-        state.setHistory(curUrl.searchParams.get("url"), document.title);
+        state.setHistory();
     }
     const debouncedSaveScroll = debounce(
         saveScrollPosition,

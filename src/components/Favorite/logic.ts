@@ -59,8 +59,7 @@ export const buildTrList = (list: FavoriteItem[]): string => {
 
         return `<tr item_id="${item.id}" url="${item.url}" cur_url="${item.cur_url}" source="${item.source || ''}">` +
             `<th>${index + 1}<div class="check"></div>` +
-            `<td>${curPage}` +
-            `<td>/<td>${maxPage}` +
+            `<td><div class="top">${curPage}</div><div>${maxPage}</div>` +
             `<td>${tag_add}<span class="novel_title">${name}</span><br>${author}` +
             `<td>${site_name}${source_info}`;
     }).join("");

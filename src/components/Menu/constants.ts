@@ -9,7 +9,7 @@ export const UI = {
     FIRST: "first",
     PANEL: "panel",
     URL: "url",
-    OPEN: "oepn",
+    OPEN: "open",
     FAVORITE: "favorite",
     CONFIG: "config",
     TOP_PAGE: "top_page",

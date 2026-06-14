@@ -60,7 +60,7 @@ const getUpdateInfo = async (url: string) => {
 export class Narou extends TxtMiruSitePlugin {
     Match = (url: string) => /https:\/\/.*\.syosetu\.com/.test(url);
     GetDocument = async (txtMiru: TxtMiruDocParam, url: string): Promise<TxtMiruItem | null> =>
-        TryFetchNoScriptDocument(txtMiru, url, {
+        TryFetchNoScriptDocument(txtMiru, Shared.appendSlash(url), {
             charset: "UTF-8",
             cookie: (db.setting[Shared.DB.OVER18] === "yes") ? "over18=yes" : ""
         }, (doc: Document) => makeItem(url, doc)

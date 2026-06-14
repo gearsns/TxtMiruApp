@@ -9,7 +9,7 @@ import * as Shared from '@shared';
 export interface NovelState {
     loader: TxtMiruLoading;
     isPrefetch: boolean,
-    setHistory: (url: string | null, title: string) => void;
+    setHistory: () => void;
     updateCacheIcon: () => void;
 }
 
@@ -74,7 +74,7 @@ export const loadNovel = async (
     const loading = { ...state.loader.begin(`取得中...`), cache: Features.localCacheList };
     const oldUrl = new URL(location.href);
 
-    if (!isNoHistory) state.setHistory(oldUrl.searchParams.get("url"), document.title);
+    if (!isNoHistory) state.setHistory();
 
     // 初期化表示
     menu.initPageButtons();
@@ -98,12 +98,9 @@ export const loadNovel = async (
         }
         if (item) {
             makeContents(item, targetUrl, state, scrollPos);
-            if (!isNoHistory) Shared.updateUrlParams(targetUrl, oldUrl);
-            state.setHistory(targetUrl, document.title);
+            if (!isNoHistory) Shared.updateUrlParams(targetUrl, oldUrl, document.title);
+            state.setHistory();
             setCurrentPage(targetUrl, item);
-        }
-        if (isIndex) {
-            Shared.removeUrlParam(oldUrl);
         }
     } catch (err) {
         console.error(err);

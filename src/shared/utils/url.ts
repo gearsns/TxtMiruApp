@@ -68,27 +68,24 @@ export const isOwnPage = (urlStr: string): boolean => {
 /**
  * 共通の履歴更新処理
  */
-const pushStateWithUrl = (newUrl: URL, oldUrlHref: string) => {
-    if (oldUrlHref !== newUrl.href) {
-        window.history.pushState({ 'TxtMiru': true }, document.title, newUrl.href);
+const pushStateWithUrl = (newUrl: URL, oldUrl: URL, title: string) => {
+    if (oldUrl.href === newUrl.href) {
+        return;
     }
+    const newParamUrl = newUrl.searchParams.get("url");
+    const oldParamUrl = oldUrl.searchParams.get("url");
+    if (newParamUrl === oldParamUrl){
+        return;
+    }
+    window.history.pushState({ 'TxtMiru': true }, title, newUrl.href);
 };
 
 /**
  * 指定したURLをクエリパラメータにセットし、履歴に追加する
  * @param {string} url - セットしたいURL文字列
  */
-export const updateUrlParams = (url: string, oldUrl: URL) => {
+export const updateUrlParams = (url: string, oldUrl: URL, title: string) => {
     const newUrl = new URL(location.href);
     newUrl.searchParams.set('url', url);
-    pushStateWithUrl(newUrl, oldUrl.href);
-};
-
-/**
- * クエリパラメータから 'url' を削除し、履歴を更新する
- */
-export const removeUrlParam = (oldUrl: URL) => {
-    const newUrl = new URL(location.href);
-    newUrl.searchParams.delete('url');
-    pushStateWithUrl(newUrl, oldUrl.href);
+    pushStateWithUrl(newUrl, oldUrl, title);
 };

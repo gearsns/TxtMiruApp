@@ -24,7 +24,7 @@ const getHistoryViewData = (historyJson?: string, indexItem?: HistoryItemBase): 
             }));
 
         if (indexItem && isEntryValid(indexItem)) {
-            list.push({ ...indexItem, suffix: "Index" });
+            list.unshift({ ...indexItem, suffix: "index" });
         }
         return list;
     } catch (e) {
@@ -38,7 +38,7 @@ const replaceHistory = (baseHtml: string, listHtml: string, items: HistoryItem[]
         return baseHtml.replaceAll(wrapperId, "");
     }
     const listContent = items.map(item =>
-        `<div class="novel_sublist"><a href='${Shared.escapeHtml(item.url)}'>${Shared.escapeHtml(item.name)}</a></div>`
+        `<div class="novel_sublist ${item.suffix}"><a href='${Shared.escapeHtml(item.url)}'>${Shared.escapeHtml(item.name)}</a></div>`
     ).join("");
     return baseHtml.replaceAll(wrapperId,
         listHtml.replaceAll("%LIST%", listContent)

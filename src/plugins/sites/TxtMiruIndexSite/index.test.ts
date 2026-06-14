@@ -24,15 +24,15 @@ describe('TxtMiruIndexSite Logic Tests', () => {
             expect(result[1].suffix).toBe(2);
         });
 
-        it('indexItemがある場合、末尾に追加されること', () => {
+        it('indexItemがある場合、先頭に追加されること', () => {
             const json = JSON.stringify([{ name: '履歴1', url: 'url1' }]);
             const indexItem = { name: '現在のページ', url: 'url2', scrollPos: '100' };
 
             const result = Tests.getHistoryViewData(json, indexItem);
 
             expect(result).toHaveLength(2);
-            expect(result[1].suffix).toBe('Index');
-            expect(result[1].name).toBe('現在のページ');
+            expect(result[0].suffix).toBe('index');
+            expect(result[0].name).toBe('現在のページ');
         });
 
         it('nameが "undefined" (文字列) の項目は除外されること', () => {

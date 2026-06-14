@@ -20,7 +20,7 @@ div.sticky_table {
     margin: 0;
     border: 0;
     border-collapse: collapse;
-    font-size: 1.1rem;
+    font-size: 1rem;
 
     th {
       /* 縦スクロール時に固定する */
@@ -34,7 +34,7 @@ div.sticky_table {
       white-space: nowrap;
       text-align: left;
       padding: 0 0.5em;
-      min-width: 3em;
+      min-width: 2em;
     }
 
     th:first-child {
@@ -60,9 +60,11 @@ div.sticky_table {
         color: #333;
       }
 
-      td:nth-child(2),
-      td:nth-child(4) {
-        text-align: right;
+      td:nth-child(2) {
+        text-align: center;
+        & .top {
+          border-bottom: 1px solid #0001;
+        }
       }
 
       tr:nth-child(even) :is(th, td) {
