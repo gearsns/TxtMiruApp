@@ -14,7 +14,7 @@ export const showMenu = (isActive: boolean) => {
 /**
  * 設定（フォント、テーマ、ボタンの表示等）をDOMに反映する
  */
-export const reflectSetting = (loadNovel: (url?: string | undefined, pos?: string | number, noHist?: boolean) => Promise<void>) => {
+export const reflectSetting = (loadNovel: (url?: string | undefined) => void) => {
     const { main, menu } = elements;
     const setting = db.setting;
 

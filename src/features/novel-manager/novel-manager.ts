@@ -9,7 +9,7 @@ import * as Shared from '@shared';
 export interface NovelState {
     loader: TxtMiruLoading;
     isPrefetch: boolean,
-    setHistory: () => void;
+    setHistory: (url: string) => void;
     updateCacheIcon: () => void;
 }
 
@@ -55,14 +55,52 @@ export const makeContents = (
     document.title = item.title || (import.meta.env.APP_FULL_TITLE as string);
 };
 
+export const saveScrollPosition = () => {
+    const currentHistoryId = history.state?.historyId;
+    if (!currentHistoryId) return;
+
+    const { main } = Features.elements;
+
+    const scrollWidth = main.scrollWidth || 1;
+    const currentScrollPos = main.scrollLeft / scrollWidth;
+
+    sessionStorage.setItem(`scroll_id_${currentHistoryId}`, currentScrollPos.toString());
+}
+
+export const handleNavigate = async (state: NovelState, url: string | undefined | null = undefined): Promise<void> => {
+    if (url?.startsWith('#')) {
+        const hash = url; // "#section1"
+        const nameOrId = hash.substring(1); // "section1" (先頭の#を削る)
+        const target = document.querySelector(`${hash}, [name="${nameOrId}"]`) as HTMLElement;
+        if (target) {
+            target.scrollIntoView();
+        }
+    } else {
+        await renderNovel(state, url);
+    }
+    const targetUrl = url ? `./index.html?url=${url}` : "./index.html";
+
+    // ブラウザのURLと履歴を更新 (ページリロードはさせない)
+    const historyId = crypto.randomUUID();
+    window.history.pushState({ TxtMiru: true, historyId }, '', targetUrl);
+}
+
+export const handleLocate = (state: NovelState) => {
+    const url = Shared.getNovelUrl();
+    const destHistoryId = history.state?.historyId;
+    // 戻り先の履歴IDに対応するスクロール位置を取得
+    const savedPosStr = destHistoryId ? sessionStorage.getItem(`scroll_id_${destHistoryId}`) : null;
+    const scrollPos = savedPosStr ? parseFloat(savedPosStr) : undefined;
+    renderNovel(state, url, scrollPos);
+}
+
 /**
- * 小説データのロード（メイン関数）
+ * 小説データの描画（メイン関数）
  */
-export const loadNovel = async (
+export const renderNovel = async (
     state: NovelState,
     url: string | undefined | null = undefined,
-    scrollPos: number | string = 0,
-    isNoHistory = false
+    scrollPos: number | string = 0
 ): Promise<void> => {
     state.isPrefetch = false;
     if (state.loader.isLoading) return;
@@ -72,9 +110,6 @@ export const loadNovel = async (
 
     Features.backgroundAbortController?.abort();
     const loading = { ...state.loader.begin(`取得中...`), cache: Features.localCacheList };
-    const oldUrl = new URL(location.href);
-
-    if (!isNoHistory) state.setHistory();
 
     // 初期化表示
     menu.initPageButtons();
@@ -98,8 +133,7 @@ export const loadNovel = async (
         }
         if (item) {
             makeContents(item, targetUrl, state, scrollPos);
-            if (!isNoHistory) Shared.updateUrlParams(targetUrl, oldUrl, document.title);
-            state.setHistory();
+            state.setHistory(url ?? "");
             setCurrentPage(targetUrl, item);
         }
     } catch (err) {

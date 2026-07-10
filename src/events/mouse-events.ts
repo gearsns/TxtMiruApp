@@ -29,7 +29,7 @@ export const setupMouseEvents = (actions: AppActions) => {
         const target = e.target as HTMLElement;
         if (jumpToTarget(target, actions)) {
             e.preventDefault();
-        } else {
+        } else if(!target.closest("summary")){
             const threshold = db.setting[Shared.DB.TAP_SCROLL_NEXT_PER] || 0;
             if (threshold && e.clientX < main.clientWidth * (threshold / 100)) {
                 e.preventDefault();

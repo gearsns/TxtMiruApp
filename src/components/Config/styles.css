@@ -1,8 +1,6 @@
 .inner {
   overflow: auto;
-  top: var(--sat);
-  bottom: 0;
-  width: calc(100% - 80px);
+  inset: var(--sat) 0 0;
 
   input {
     font-size: 1em;
@@ -80,8 +78,7 @@ input[type="text"] {
   width: 12rem;
 }
 
-#tap-scroll-next-per,
-#delay-set-scroll-pos-state {
+#tap-scroll-next-per {
   width: 6.2rem;
 }
 

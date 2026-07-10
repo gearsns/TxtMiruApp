@@ -1,6 +1,6 @@
 export interface AppActions {
     // ロジック系
-    loadNovel: (url?: string | null, scrollPos?: number | string, isNoHistory?: boolean) => void;
+    loadNovel: (url?: string | null) => void;
     pageNext: () => void;
     pagePrev: () => void;
     pageTop: () => void;

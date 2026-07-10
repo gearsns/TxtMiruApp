@@ -1,7 +1,7 @@
 {
   "name": "txtmiruapp",
   "private": true,
-  "version": "1.1.9",
+  "version": "1.1.10",
   "type": "module",
   "description": "TxtMiru Appは、小説を縦書きで読むことができるアプリです。iPhone、iPad、Androidなどのスマートフォンやタブレット環境でも縦書きで小説を楽しめます",
   "appConfig": {
@@ -24,6 +24,7 @@
     "jsdom": "^29.0.2",
     "path": "^0.12.7",
     "playwright": "^1.59.1",
+    "rollup-plugin-license": "^3.7.1",
     "source-map": "^0.7.6",
     "typescript": "^6.0.2",
     "vite": "^7.3.2",

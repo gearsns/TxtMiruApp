@@ -66,13 +66,12 @@ describe('History Utils', () => {
 
         it('通常のURLの場合、HISTORYフィールドを更新して保存すべき', () => {
             const url = 'https://example.com';
-            createEntry(mockElement, mockDb, url, 'Title');
+            createEntry(mockDb, url, 'Title');
 
             // スクロール位置の計算検証 (100 / 1000 = 0.1)
             const savedData = JSON.parse(mockDb.setting[DB_FIELDS.HISTORY]);
             expect(savedData[0]).toMatchObject({
-                url: url,
-                scroll_pos: 0.1
+                url: url
             });
 
             // setSettingが呼ばれたか
@@ -82,7 +81,7 @@ describe('History Utils', () => {
         it('ローカルファイルURLの場合、LOCAL_HISTORYを更新すべき', () => {
             // DB_FIELDS.LOCAL_HISTORY の実際の値に合わせる（例: "local_history"）
             const localUrl = 'txtmiru://localfile/abcd-1234';
-            createEntry(mockElement, mockDb, localUrl, 'Local Title');
+            createEntry(mockDb, localUrl, 'Local Title');
 
             expect(mockDb.setting[DB_FIELDS.LOCAL_HISTORY]).toContain(localUrl);
             expect(mockDb.setting[DB_FIELDS.LOCAL_HISTORY_INDEX]).toEqual({ url: localUrl, name: 'Local Title' });

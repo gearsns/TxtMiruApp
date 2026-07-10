@@ -1,21 +1,18 @@
 import * as Features from '@features';
-import { DB, debounce } from '@shared';
+import * as Shared from '@shared';
+import { DB } from '@shared';
 import { db } from './services/storage';
 
 export const bindAppEvents = (state: Features.NovelState, cacheLoadFn: Function) => {
     const { main, pageEffect } = Features.elements;
 
-    const saveScrollPosition = () => {
-        state.setHistory();
-    }
-    const debouncedSaveScroll = debounce(
-        saveScrollPosition,
-        () => db.setting[DB.DELAY_SET_SCROLL_POS_STATE]
+    const debouncedSaveScroll = Shared.debounce(
+        Features.saveScrollPosition,
+        200
     );
+
     main.addEventListener("scroll", () => {
-        if (db.setting[DB.DELAY_SET_SCROLL_POS_STATE] >= 0) {
-            debouncedSaveScroll();
-        }
+        debouncedSaveScroll();
         // プリフェッチ判定ロジック
         if (state.isPrefetch && db.setting[DB.PAGE_PREFETCH]) {
             const totalScrollable = main.scrollWidth - main.clientWidth;
@@ -25,11 +22,10 @@ export const bindAppEvents = (state: Features.NovelState, cacheLoadFn: Function)
         }
     });
 
-    window.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') {
-            saveScrollPosition();
-        }
+    window.addEventListener('popstate', () => {
+        Features.handleLocate(state);
     });
+
     pageEffect.addEventListener("animationend", () => {
         pageEffect.style.display = "none";
     });

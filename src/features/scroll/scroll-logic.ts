@@ -138,14 +138,8 @@ export const handleTopEndNavigation = (isTop: boolean) => {
 }
 
 export const handleGotoUrl = (url: string, loadNovel: (url: string) => void): boolean => {
-    const { main } = elements;
-
     if (url.startsWith('#')) {
-        const name = url.slice(1);
-        const target = document.querySelector(`*[name="${CSS.escape(name)}"]`) as HTMLElement;
-        if (target) {
-            main.scrollLeft += (target.getBoundingClientRect().right - main.clientWidth);
-        }
+        loadNovel(url);
     } else if (Shared.isOwnPage(url)) {
         loadNovel("TxtMiruIndex");
     } else if (Shared.isSupportedProtocol(url)) {

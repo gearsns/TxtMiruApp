@@ -8,27 +8,21 @@
     <button data-action="close" class="blue">閉じる</button>
   </header>
   <div class="sticky_table">
-    <table id="novel_list">
-      <thead id="novel_list_head">
-        <tr>
-          <th>
-            <div name="list_no">#</div>
-          </th>
-          <th>
-            <div name="page">ページ</div>
-          </th>
-          <th>
-            <div name="title">
-              <div name="new" class="updated" style="display:inline">New</div>タイトル
-            </div>
-            <div name="author">著者</div>
-          </th>
-          <th>
-            <div name="site">掲載</div>
-          </th>
-        </tr>
-      </thead>
-      <tbody id="novel_list_body"></tbody>
-    </table>
+    <div id="novel_list" class="novel_grid">
+      <div class="grid_row header_row" style="--order: 9999">
+        <div class="grid_th updated" name="new">
+          New
+        </div>
+        <div class="grid_th">
+          <div name="list_no">#</div>
+        </div>
+        <div name="page" class="grid_th">ページ</div>
+        <div class="grid_th">
+          <div name="title">タイトル</div>
+          <div name="author">著者</div>
+        </div>
+        <div name="site" class="grid_th">掲載</div>
+      </div>
+    </div>
   </div>
 </div>

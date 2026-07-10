@@ -44,6 +44,10 @@ export const sortList = (list: FavoriteItem[], column: string, dir: number): voi
     });
 }
 
+const makeLastRow = (content: string, order: number = -1) => {
+    return `<div class="grid_row" style="--order: ${order}"><div class="grid_marged_cell">${content}</div></div>`;
+}
+
 export const buildTrList = (list: FavoriteItem[]): string => {
     return list.map((item, index) => {
         const site = TxtMiruSiteManager.FindSite(item.url);
@@ -52,29 +56,33 @@ export const buildTrList = (list: FavoriteItem[]): string => {
             ? [1, 1]
             : [item.max_page, item.cur_page];
         const isNew = Number(curPage) < Number(maxPage);
-        const tag_add = isNew ? `<span class="updated">New</span>` : "";
+        const add_class = isNew ? ` updated` : "";
+        const add_text = isNew ? `New` : "";
         const source_info = item.source ? `<br>${item.source}` : "";
         const name = escapeHtml(item.name ?? "");
         const author = escapeHtml(item.author ?? "");
 
-        return `<tr item_id="${item.id}" url="${item.url}" cur_url="${item.cur_url}" source="${item.source || ''}">` +
-            `<th>${index + 1}<div class="check"></div>` +
-            `<td><div class="top">${curPage}</div><div>${maxPage}</div>` +
-            `<td>${tag_add}<span class="novel_title">${name}</span><br>${author}` +
-            `<td>${site_name}${source_info}`;
-    }).join("");
+        return `<div class="grid_row" style="--order: ${-index}" item_id="${item.id}" url="${item.url}" cur_url="${item.cur_url}" source="${item.source || ''}">` +
+            `<div class="grid_td${add_class}">${add_text}</div>` +
+            `<div class="grid_td">${index + 1}<div class="check"></div></div>` +
+            `<div class="grid_td"><div class="top">${curPage}</div><div>${maxPage}</div></div>` +
+            `<div class="grid_td"><span class="novel_title">${name}</span><span class="author">${author}</span></div>` +
+            `<div class="grid_td">${site_name}${source_info}</div>` + 
+            `</div>`;
+    }).join("")
+     + makeLastRow("", -list.length);
 }
 
 export const makeTBody = (list: FavoriteItem[], column: string, order: string): string => {
     if (!list || list.length === 0) {
-        return `<tr><td colspan="6" style="width:100vw">お気に入りが登録されていません。`;
+        return makeLastRow(`お気に入りが登録されていません。`);
     }
     const dir = (column === order) ? 1 : -1;
     try {
         sortList(list, column, dir);
         return buildTrList(list);
     } catch (e) {
-        return `<tr><td colspan="6">エラーが発生しました。`;
+        return makeLastRow(`エラーが発生しました。`);
     }
 }
 

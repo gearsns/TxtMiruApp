@@ -34,13 +34,15 @@ export class TxtMiruFavorite extends ModalBase {
         this.loader.end();
     }
     private dispList = (): void => {
-        const tbody = this.getEl("novel_list_body");
-        if (!tbody) return;
+        const table = this.getEl("novel_list");
+        if (!table) return;
 
         const column_name = db.setting[Shared.DB.FAVORITE_SORT_COLUMN];
         const column_name_order = db.setting[Shared.DB.FAVORITE_SORT_COLUMN_ORDER];
 
-        tbody.innerHTML = makeTBody(this.favoriteList, column_name, column_name_order);
+        table.querySelectorAll(".header_row ~ *").forEach(el => el.remove());
+
+        table.insertAdjacentHTML('beforeend', makeTBody(this.favoriteList, column_name, column_name_order));
     }
 
     public reload = async (): Promise<void> => {
@@ -50,10 +52,16 @@ export class TxtMiruFavorite extends ModalBase {
         this.favoriteList = await db.getFavoriteList();
         this.dispList();
         if (table) table.style.visibility = "visible";
+        setTimeout(() => {
+            const tableContainer = this.root.querySelector('.sticky_table');
+            if (tableContainer) {
+                tableContainer.scrollLeft = tableContainer.scrollWidth;
+            }
+        }, 0);
     }
 
     private loadNovel(attrName: "url" | "cur_url", comment: string) {
-        const selectedRows = this.root.querySelectorAll<HTMLElement>("#novel_list_body tr.check_on");
+        const selectedRows = this.root.querySelectorAll<HTMLElement>(".check_on");
         if (selectedRows.length === 1) {
             const target = selectedRows[0];
             const url = target?.getAttribute(attrName);
@@ -67,11 +75,11 @@ export class TxtMiruFavorite extends ModalBase {
     }
 
     private async handleDelete(): Promise<void> {
-        if (this.root.querySelector("#novel_list_body tr.check_on")) {
+        if (this.root.querySelector(".check_on")) {
             const e = await TxtMiruMessageBox.show("選択されているページをお気に入りから削除します。", { "buttons": [{ text: "削除", className: "blue", value: "delete" }, "削除しない"] });
             if (e !== "delete") { return; }
             this.loader.begin();
-            for (const tr of this.root.querySelectorAll("#novel_list_body tr.check_on")) {
+            for (const tr of this.root.querySelectorAll(".check_on")) {
                 await db.deleteFavorite(Number(tr.getAttribute("item_id") ?? 0));
             }
             await this.reload();
@@ -81,7 +89,7 @@ export class TxtMiruFavorite extends ModalBase {
         }
     }
     private async handleUpdate(): Promise<void> {
-        const trList = this.root.querySelectorAll("#novel_list_body tr");
+        const trList = this.root.querySelectorAll(".grid_row");
         const targets = getUpdateTargets(trList);
         if (targets.length === 0) return;
         const loading = this.loader.begin();
@@ -95,14 +103,14 @@ export class TxtMiruFavorite extends ModalBase {
                 (url) => {
                     const target = targetsMap.get(url);
                     if (target) {
-                        target.element.className = "loading";
+                        target.element.classList.add("loading");
                         return target.title;
                     }
                 },
                 (siteInfo) => {
                     const element = targetsMap.get(siteInfo.url)?.element;
-                    if (element?.className === "loading") {
-                        element.className = "check_on";
+                    if (element?.classList.contains("loading")) {
+                        element.classList.remove("loading");
                     }
                 }
             );
@@ -130,35 +138,18 @@ export class TxtMiruFavorite extends ModalBase {
             }
         });
 
-        // リスト内クリック（選択）
-        this.getEl("novel_list_body")?.addEventListener("click", (e) => {
-            const tr = (e.target as HTMLElement).closest("tr");
-            if (tr) tr.classList.toggle("check_on");
-        }, { signal });
-
-        // ダブルクリックで続きから
-        this.getEl("novel_list_body")?.addEventListener("dblclick", (e) => {
-            const tr = (e.target as HTMLElement).closest("tr");
-            if (!tr) return;
-            this.hide();
-            const url = tr.getAttribute("cur_url") || tr.getAttribute("url");
-            if (url) {
-                this.onSave?.(url);
+        const nl = this.getEl("novel_list");
+        // リスト内クリック（選択/ソート）
+        nl?.addEventListener("click", async (e) => {
+            const row = (e.target as HTMLElement).closest(".grid_row");
+            if (!row) {
+                return;
             }
-        }, { signal });
-
-        // ソート
-        this.getEl("novel_list_head")?.addEventListener("click", async (e) => {
-            let target = null;
-            const tagName = (e.target as HTMLElement).tagName;
-            if (tagName === "DIV") {
-                target = e.target as HTMLElement;
-            } else if (tagName === "TD" || tagName === "TH") {
-                target = (e.target as HTMLElement).children[0] as HTMLElement;
-            } else {
-                return false;
-            }
-            if (target) {
+            if (row.classList.contains("header_row")) {
+                const target = (e.target as HTMLElement).closest("[name]");
+                if (!target) {
+                    return;
+                }
                 const name = target.getAttribute("name") as string
                 await db.setSetting([
                     {
@@ -169,8 +160,25 @@ export class TxtMiruFavorite extends ModalBase {
                     }
                 ]);
                 this.dispList();
+            } else {
+                row.classList.toggle("check_on");
             }
-            return false;
+        }, { signal });
+
+        // ダブルクリックで続きから
+        nl?.addEventListener("dblclick", (e) => {
+            const row = (e.target as HTMLElement).closest(".grid_row");
+            if (!row) return;
+            const url = row.getAttribute("cur_url") || row.getAttribute("url");
+            if (url) {
+                this.hide();
+                this.onSave?.(url);
+            }
+        }, { signal });
+
+        const tableContainer = this.root.querySelector('.sticky_table') as HTMLElement;
+        tableContainer?.addEventListener("wheel", (e) => {
+            tableContainer.scrollBy({ left: tableContainer.clientWidth * (e.deltaY < 0 ? 1 : -1), behavior: "smooth",});
         }, { signal });
     }
 

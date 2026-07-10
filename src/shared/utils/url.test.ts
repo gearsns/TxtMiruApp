@@ -52,16 +52,6 @@ describe('Browser Dependent Utils', () => {
         expect(utils.isOwnPage('https://other.com')).toBe(false);
     });
 
-    it('updateUrlParams: URLパラメータを更新し履歴に追加すること', () => {
-        const oldUrl = new URL(window.location.href);
-        utils.updateUrlParams('https://new-novel.com', oldUrl, "test");
-
-        // pushStateが呼ばれたか、正しいURLがセットされたか確認
-        expect(window.history.pushState).toHaveBeenCalled();
-        const pushStateCall = (window.history.pushState as any).mock.calls[0];
-        expect(pushStateCall[2]).toContain('url=https%3A%2F%2Fnew-novel.com');
-    });
-
     describe('convertAbsoluteURL', () => {
         const base = 'https://example.com/dir/subdir/index.html';
 

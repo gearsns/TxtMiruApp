@@ -11,94 +11,143 @@
 
 div.sticky_table {
   background-color: #fff;
-  margin: 0;
-  overflow: scroll;
+  overflow-x: auto;
+  overflow-y: hidden;
   flex: 1;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
 
-  table {
-    padding: 0;
-    margin: 0;
-    border: 0;
-    border-collapse: collapse;
-    font-size: 1rem;
+.novel_grid {
+  --border-color: #eee;
+  --stripe-color: #f8f8f8;
+  --hover-color: rgb(211, 231, 222);
 
-    th {
-      /* 縦スクロール時に固定する */
-      position: sticky;
-      top: 0;
-      /* tbody内のセルより手前に表示する */
-      z-index: 1;
-      background: #212529;
-      color: #fff;
-      border-bottom: 2px solid #eee;
-      white-space: nowrap;
-      text-align: left;
-      padding: 0 0.5em;
-      min-width: 2em;
-    }
+  display: grid;
+  grid-template-rows: 1rem 1.3rem 3rem minmax(200px, 1fr) 6rem;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
 
-    th:first-child {
-      /* 横スクロール時に固定する */
-      position: sticky;
-      text-align: center;
-      left: 0;
-    }
+  font-size: 1rem;
+  background: #fff;
+  height: 100%;
 
-    thead th:first-child {
-      /* ヘッダー行内の他のセルより手前に表示する */
-      z-index: 2;
-    }
+  .grid_row {
+    display: contents;
+  }
 
-    tbody {
-      background: #fff;
+  /* ---- セル共通ベース ---- */
+  .grid_th,
+  .grid_td {
+    padding: 0.6em;
+    border-bottom: 1px solid var(--border-color);
+    border-left: 1px solid var(--border-color);
+    color: #333;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    white-space: normal;
+    order: var(--order, 0);
+  }
 
-      th,
-      td {
-        border-bottom: 1px solid #eee;
-        padding: 0 0.5em;
-        white-space: nowrap;
-        color: #333;
-      }
+  .grid_th {
+    display: flex;
+    align-items: center;
+  }
 
-      td:nth-child(2) {
-        text-align: center;
-        & .top {
-          border-bottom: 1px solid #0001;
-        }
-      }
+  .header_row .grid_th {
+    position: sticky;
+    right: 0;
+    z-index: 10;
+    background: #212529;
+    color: #fff;
+    text-align: left;
+    border-left: 1px solid #444;
+  }
 
-      tr:nth-child(even) :is(th, td) {
-        background: #fff;
-      }
+  /* ---- 横書き＋中央揃えセル（#番号／ページ数）を統合 ---- */
+  .grid_th:nth-child(-n+3),
+  .grid_td:nth-child(-n+3) {
+    writing-mode: horizontal-tb;
+    display: flex;
+    justify-content: center;
+  }
 
-      tr:nth-child(odd) :is(th, td) {
-        background: #f8f8f8;
-      }
+  .grid_th:nth-child(1),
+  .grid_td:nth-child(-n+2) {
+    text-align: center;
+    align-items: center;
+  }
 
-      tr:hover :is(th, td) {
-        background-color: rgb(211, 231, 222) !important;
-      }
-    }
+  .grid_th:nth-child(1),
+  .grid_td:nth-child(1) {
+    border-bottom: none;
+  }
+
+  /* ページ数セルだけ縦積み（top/下段）にするための上書き */
+  .grid_td:nth-child(3) {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .grid_td:nth-child(3) .top {
+    border-bottom: 1px solid #0001;
+    padding-bottom: 2px;
+    margin-bottom: 2px;
+  }
+
+  /* #番号セルの強調 */
+  .grid_td:nth-child(2) {
+    font-weight: bold;
+    position: relative;
+  }
+
+  /* タイトル／掲載セルを統合（縦並びFlexは共通） */
+  .grid_th:nth-child(4),
+  .grid_td:nth-child(4),
+  .grid_td:nth-child(5) {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .grid_th:nth-child(4) {
+    align-items: start;
+  }
+
+  /* ---- 縞々・ホバー ---- */
+  .grid_row:nth-child(odd) .grid_td {
+    background: var(--stripe-color);
+  }
+
+  .grid_row:hover .grid_td {
+    background-color: var(--hover-color) !important;
+  }
+
+  /* ---- ダミー列（右寄せ用スペーサー） ---- */
+  .grid_marged_cell {
+    grid-row: 1 / span 5;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    order: var(--order, 0);
   }
 }
 
 .updated {
-  font-size: 50%;
-  border-radius: 0.25em;
-  background-color: #28a745;
-  color: #fff;
-  padding: 0.25em;
-  margin-right: 0.25em;
-  display: inline-block;
-}
-
-tr.check_on {
-  background-color: #e0f7fa;
+  padding: 0;
+  flex-direction: column;
+  color: coral !important;
+  writing-mode: horizontal-tb !important;
+  font-size: 0.7rem;
+  border-bottom: none !important;
 }
 
 .check_on .check::before {
   position: absolute;
-  top: 0.2em;
+  top: -1em;
   left: 50%;
   width: 1em;
   height: 0.5em;
@@ -109,11 +158,11 @@ tr.check_on {
   content: "";
 }
 
-tr.loading {
+.loading {
   position: relative;
 }
 
-tr.loading th::before {
+.loading .check::before {
   content: "";
   width: 1.2rem;
   height: 1.2rem;
@@ -121,11 +170,11 @@ tr.loading th::before {
   border: 0.2rem solid rgba(200, 200, 200, 0.3);
   border-top-color: rgba(255, 120, 0, 0.8);
   box-sizing: border-box;
-  top: 30%;
-  left: 30%;
   position: absolute;
-  margin-top: -0.1rem;
-  margin-left: -0.1rem;
+  top: 50%;
+  left: 50%;
+  margin-top: -0.6rem;
+  margin-left: -0.6rem;
   animation: loading 1.2s linear infinite;
 }
 
@@ -133,4 +182,17 @@ tr.loading th::before {
   to {
     transform: rotate(360deg);
   }
+}
+
+.novel_title {
+  font-weight: bold;
+  color: #111;
+}
+
+.author {
+  display: block;
+}
+
+.goto {
+  background-color: rgb(40, 161, 141);
 }

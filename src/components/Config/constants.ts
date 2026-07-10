@@ -18,6 +18,5 @@ export const TEXT_SETTING_MAPPING: Record<string, string> = {
     "server-url": DB_FIELDS.WEBSERVERURL,
     "websocket-server-url": DB_FIELDS.WEBSOCKET_SERVERURL,
     "user-id": DB_FIELDS.USER_ID,
-    "delay-set-scroll-pos-state": DB_FIELDS.DELAY_SET_SCROLL_POS_STATE,
     "font-feature-settings": DB_FIELDS.FONT_FEATURE_SETTINGS
 };

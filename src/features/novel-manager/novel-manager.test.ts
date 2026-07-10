@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { loadNovel, makeContents, NovelState, setCurrentPage } from './novel-manager';
+import { renderNovel, makeContents, NovelState, setCurrentPage } from './novel-manager';
 import { TxtMiruSiteManager } from '../../plugins';
 import { TxtMiruLoading, TxtMiruMessageBox } from '../../components';
 import { db } from '@/services/storage';
@@ -96,7 +96,7 @@ describe('Novel Logic Tests', () => {
         });
     });
 
-    describe('loadNovel', () => {
+    describe('renderNovel', () => {
         it('正常系: キャッシュがない場合にAPIからドキュメントを取得する', async () => {
             const url = 'http://example.com/1';
             const mockItem = { title: 'Test', html: 'body' };
@@ -104,7 +104,7 @@ describe('Novel Logic Tests', () => {
             vi.mocked(Features.cacheFiles.Get).mockReturnValue(null as unknown as TxtMiruItem);
             vi.mocked(TxtMiruSiteManager.GetDocument).mockResolvedValue(mockItem as unknown as TxtMiruItem);
 
-            await loadNovel(mockState, url);
+            await renderNovel(mockState, url);
 
             expect(TxtMiruSiteManager.GetDocument).toHaveBeenCalled();
             expect(Features.cacheFiles.Set).toHaveBeenCalledWith(expect.objectContaining({ title: 'Test' }));
@@ -115,7 +115,7 @@ describe('Novel Logic Tests', () => {
             // isLoading が true を返すように一時的に書き換える
             const isLoadingSpy = vi.spyOn(mockState.loader, 'isLoading', 'get');
             isLoadingSpy.mockReturnValue(true);
-            await loadNovel(mockState, 'http://test.com');
+            await renderNovel(mockState, 'http://test.com');
             expect(mockState.loader.begin).not.toHaveBeenCalled();
         });
     });

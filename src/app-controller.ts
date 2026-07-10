@@ -14,13 +14,12 @@ export const createAppContext = (popupManager: {
     const state: Features.NovelState = {
         loader: new Components.TxtMiruLoading(),
         isPrefetch: false,
-        setHistory: () => Features.createEntry(main, db, getNovelUrl(), document.title),
+        setHistory: (url: string) => Features.createEntry(db, url, document.title),
         updateCacheIcon: () => Features.updateIcon(contents.getAttribute(EPISODE.NEXT))
     };
 
     // 2. ラッパー関数
-    const loadNovelWrapper = (url?: string | null, pos: number | string = 0, noHist = false) =>
-        Features.loadNovel(state, url, pos, noHist);
+    const loadNovelWrapper = (url?: string | null) => Features.handleNavigate(state, url);
 
     const withPopup = popupManager.run;
 

@@ -33,17 +33,6 @@ const Start = async () => {
     bindAppEvents(state, cacheLoad);
 
     Features.reflectSetting(loadNovelWrapper);
-    const handleNavigation = () => {
-        const novelUrl = Shared.getNovelUrl();
-        if (!novelUrl) {
-            loadNovelWrapper(undefined, undefined, true);
-            return;
-        }
-        const scrollPos = Features.getHistoryByUrl(db.setting[Shared.DB.HISTORY], novelUrl)?.scroll_pos ?? 0;
-        loadNovelWrapper(novelUrl, scrollPos, true);
-    }
-
-    window.addEventListener("popstate", handleNavigation);
-    handleNavigation();
+    Features.handleLocate(state);
 }
 Start();

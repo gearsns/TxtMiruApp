@@ -2,7 +2,7 @@ import { CacheFiles } from "@/services/cache/cache-files"
 
 let websocket: WebSocket | null = null;
 
-export const setupWebsock = (url: string, cache: CacheFiles, callback: (url?: string | undefined, pos?: string | number, noHist?: boolean) => void) => {
+export const setupWebsock = (url: string, cache: CacheFiles, callback: (url?: string | undefined) => void) => {
     if (websocket) {
         websocket.onclose = null;
         websocket.onerror = null;
@@ -18,10 +18,11 @@ export const setupWebsock = (url: string, cache: CacheFiles, callback: (url?: st
             try {
                 const item = JSON.parse(e.data) as TxtMiruItem;
                 if (item.url) {
-                    const [baseUrl, pos] = item.url.split("#");
+                    const orgUrl = item.url;
+                    const [baseUrl] = item.url.split("#");
                     item.url = baseUrl;
                     cache.Set(item);
-                    callback(item.url, pos ?? "", true);
+                    callback(orgUrl);
                 } else {
                     cache.Set(item);
                 }

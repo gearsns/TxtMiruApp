@@ -5,7 +5,8 @@ import topHtml from './index.html?raw'
 import globalHistoryHtml from './history.html?raw'
 import localHistoryHtml from './history-local.html?raw'
 import { HistoryItem } from '@/types/history';
-
+import { TxtMiruLib } from '../../shared/TxtMiruLib'
+const { KumihanMod } = TxtMiruLib;
 type HistoryItemBase = Omit<HistoryItem, 'suffix'>;
 /**
  * 履歴表示用データの取得
@@ -73,7 +74,10 @@ export class TxtMiruIndexSite extends TxtMiruSitePlugin {
         let html = topHtml;
         html = replaceHistory(html, localHistoryHtml, localHistoryList, "%LOCAL_HISTORY%");
         html = replaceHistory(html, globalHistoryHtml, globalHistoryList, "%HISTORY%");
-        item.html = html;
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        KumihanMod("", doc);
+        item.html = doc.body.innerHTML;
         return item;
     };
     Name = () => "TxtMiruIndex";

@@ -12,7 +12,6 @@ export const LOCAL_HISTORY_INDEX = "local_history_index";
 export const HISTORY = "history";
 export const PAGE_SCROLL_EFFECT_ANIMATION = "page-scroll-effect-animation";
 export const TAP_SCROLL_NEXT_PER = "tap-scroll-next-per";
-export const DELAY_SET_SCROLL_POS_STATE = "delay-set-scroll-pos-state";
 export const PAGE_PREFETCH = "page-prefetch";
 export const USER_ID = "UserID";
 export const OVER18 = "over18";

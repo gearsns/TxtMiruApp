@@ -37,14 +37,12 @@ export const toHistorySettings = (currentHistoryJson: string | undefined, newEnt
     return JSON.stringify(updatedHistory);
 };
 
-export const createEntry = (mainElement: HTMLElement, db: Store, checkUrl: string | null, title: string) => {
+export const createEntry = (db: Store, checkUrl: string | null, title: string) => {
     if (!checkUrl || Shared.isOwnPage(checkUrl)) {
         return;
     }
     const _updateHistoryEntry = (fieldName: string) => {
-        const scrollWidth = mainElement.scrollWidth || 1; // 0除算防止
-        const scrollPos = mainElement.scrollLeft / scrollWidth;
-        const newEntry: History = { url: checkUrl, name: title, scroll_pos: scrollPos };
+        const newEntry: History = { url: checkUrl, name: title };
         db.setting[fieldName] = toHistorySettings(db.setting[fieldName], newEntry);
     };
     const localMatch = checkUrl.match(/^(txtmiru:\/\/localfile\/[a-z0-9\-]+)/i);
