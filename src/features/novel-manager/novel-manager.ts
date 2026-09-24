@@ -126,7 +126,7 @@ export const renderNovel = async (
             const cacheUrl = Shared.removeHash(targetUrl);
             item = Features.cacheFiles.Get(cacheUrl)
                 || await TxtMiruSiteManager.GetDocument(loading, targetUrl);
-            if (item && !item.nocache && !item.cancel) {
+            if (item && !item.nocache && !item.cancel && item.html !== "Not Found") {
                 item.url = cacheUrl;
                 Features.cacheFiles.Set(item);
             }
