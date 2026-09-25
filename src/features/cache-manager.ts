@@ -21,7 +21,7 @@ export const executeCacheFlow = async (url: string) => {
     };
     try {
         const item = await TxtMiruSiteManager.GetDocument(loading, url);
-        if (item === null) {
+        if (item === null || item.html === "Not Found") {
             menu.setCachedStatus();
             return;
         }
